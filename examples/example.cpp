@@ -1,5 +1,4 @@
 #include "dheunit.h"
-#include "suite.h"
 
 #include <iostream>
 

@@ -1,5 +1,3 @@
-#include "suite.h"
-
 #include <functional>
 #include <string>
 

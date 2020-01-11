@@ -1,5 +1,7 @@
 #include "dheunit.h"
 
+#include "suite.h"
+
 namespace dhe {
 namespace unit {
   static auto suite() -> Suite & {
@@ -16,7 +18,7 @@ namespace unit {
     return true;
   }
 
-  void it(const std::string& name, std::function<void()> const &body) { suite().addTest(name, body); }
+  void it(const std::string &name, std::function<void()> const &body) { suite().addTest(name, body); }
 
   void run() { suite().runTests(); }
 } // namespace unit
