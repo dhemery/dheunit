@@ -20,9 +20,9 @@ namespace unit {
 
   void before(std::function<void()> const &body) { context()->addBefore(body); }
 
-  auto describe(const std::string &name, std::function<void()> const &body) -> bool {
+  auto describe(const std::string &name, std::function<void()> const &builder) -> bool {
     contextStack().push_back(std::make_shared<Context>(name, context()));
-    body();
+    builder();
     contextStack().pop_back();
     return true;
   }

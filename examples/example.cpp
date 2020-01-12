@@ -16,9 +16,7 @@ static auto _ = describe("OUTER", []() {
 
     after([]() { std::cout << "INNER after" << std::endl; });
 
-    it("IT1", [&]() {
-      std::cout << "IT1" << std::endl;
-    });
+    it("IT1", [&]() { std::cout << "IT1" << std::endl; });
 
     it("IT2", [&]() { std::cout << "IT2" << std::endl; });
 
