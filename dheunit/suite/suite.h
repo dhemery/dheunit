@@ -17,7 +17,7 @@ namespace unit {
 
     void addAfter(std::function<void()> const &body);
 
-    void runTests();
+    void run();
 
   private:
     std::vector<Context> contexts{{"suite", nullptr}};
@@ -25,5 +25,6 @@ namespace unit {
     Context *context{&contexts[0]};
   }; // namespace unit
 
+  auto suite() -> Suite &;
 } // namespace unit
 } // namespace dhe

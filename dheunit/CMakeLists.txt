@@ -4,18 +4,19 @@ target_include_directories(dheunit
         PUBLIC
         include
         PRIVATE
-        src
+        suite
         )
 
 target_sources(dheunit
         INTERFACE
         include/dheunit.h
         PRIVATE
-        src/context.cpp
-        src/context.h
-        src/dheunit.cpp
-        src/suite.cpp
-        src/suite.h
-        src/test.cpp
-        src/test.h
+        dsl/dheunit.cpp
+        runner/main.cpp
+        suite/context.cpp
+        suite/context.h
+        suite/suite.cpp
+        suite/suite.h
+        suite/test.cpp
+        suite/test.h
         )

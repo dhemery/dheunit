@@ -17,10 +17,15 @@ namespace unit {
     tests.emplace_back(name, body, context);
   }
 
-  void Suite::runTests() {
+  void Suite::run() {
     for (auto test : tests) {
       test.run();
     }
+  }
+
+  auto suite() -> Suite & {
+    static auto theSuite = Suite{};
+    return theSuite;
   }
 } // namespace unit
 } // namespace dhe

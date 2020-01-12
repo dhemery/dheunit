@@ -25,5 +25,3 @@ static auto _ = describe("OUTER", []() {
     it("IT3", [&]() { std::cout << "IT3" << std::endl; });
   });
 });
-
-auto main() -> int { dhe::unit::run(); }
