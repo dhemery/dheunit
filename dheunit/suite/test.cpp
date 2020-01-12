@@ -13,5 +13,8 @@ namespace unit {
     body();
     context->destroy();
   }
+  auto Test::description() const -> std::string {
+    return context->description() + "::" + name;
+  }
 } // namespace unit
 } // namespace dhe

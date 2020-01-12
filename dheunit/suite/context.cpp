@@ -28,5 +28,11 @@ namespace unit {
       parent->destroy();
     }
   }
+  auto Context::description() const -> std::string {
+    if(parent) {
+      return parent->description() + "::" + name;
+    }
+    return name;
+  }
 } // namespace unit
 } // namespace dhe

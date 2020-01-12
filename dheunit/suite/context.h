@@ -19,6 +19,8 @@ namespace unit {
 
     void destroy();
 
+    auto description() const -> std::string;
+
   private:
     std::string const name;
     std::shared_ptr<Context> const parent;

@@ -20,3 +20,8 @@ target_sources(dheunit
         suite/test.cpp
         suite/test.h
         )
+
+target_link_libraries(dheunit
+        PUBLIC
+        snowhouse
+        )

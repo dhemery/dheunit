@@ -1,25 +1,25 @@
 #include "dheunit.h"
-
-#include <iostream>
+#include "snowhouse/snowhouse.h"
 
 using dhe::unit::after;
 using dhe::unit::before;
 using dhe::unit::describe;
 using dhe::unit::it;
+using snowhouse::Is;
 
 static auto _ = describe("OUTER", []() {
-  before([]() { std::cout << "OUTER before" << std::endl; });
-  after([]() { std::cout << "OUTER after" << std::endl; });
+  before([]() {});
+  after([]() {});
 
   describe("INNER", [&]() {
-    before([]() { std::cout << "INNER before" << std::endl; });
+    before([]() {});
 
-    after([]() { std::cout << "INNER after" << std::endl; });
+    after([]() {});
 
-    it("IT1", [&]() { std::cout << "IT1" << std::endl; });
+    it("IT1", [&]() { AssertThat(12, Is().LessThan(11).And().GreaterThan(99)); });
 
-    it("IT2", [&]() { std::cout << "IT2" << std::endl; });
+    it("IT2", [&]() {});
 
-    it("IT3", [&]() { std::cout << "IT3" << std::endl; });
+    it("IT3", [&]() {});
   });
 });

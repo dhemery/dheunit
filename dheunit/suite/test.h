@@ -13,6 +13,7 @@ namespace unit {
     Test(std::string name, std::function<void()> body, std::shared_ptr<Context> context);
 
     void run();
+    auto description() const -> std::string;
 
   private:
     std::string const name;
