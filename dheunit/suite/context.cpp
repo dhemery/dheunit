@@ -4,14 +4,15 @@
 
 namespace dhe {
 namespace unit {
-  Context::Context(std::string name, dhe::unit::Context *parent) : name{std::move(name)}, parent{parent} {}
+  Context::Context(std::string name, std::shared_ptr<Context> parent) :
+      name{std::move(name)}, parent{std::move(parent)} {}
 
   void Context::addBefore(std::function<void()> const &before) { befores.push_back(before); }
 
   void Context::addAfter(std::function<void()> const &after) { afters.push_back(after); }
 
   void Context::create() {
-    if (parent != nullptr) {
+    if (parent) {
       parent->create();
     }
     for (auto const &before : befores) {
@@ -23,7 +24,7 @@ namespace unit {
     for (auto after = afters.rbegin(); after != afters.rend(); after++) {
       (*after)();
     }
-    if (parent != nullptr) {
+    if (parent) {
       parent->destroy();
     }
   }

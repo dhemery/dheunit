@@ -8,6 +8,5 @@ namespace unit {
   void before(std::function<void()> const &body);
   auto describe(const std::string &name, std::function<void()> const &body) -> bool;
   void it(const std::string &name, std::function<void()> const &body);
-  void run();
 } // namespace unit
 } // namespace dhe

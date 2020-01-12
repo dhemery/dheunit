@@ -1,28 +1,18 @@
 #pragma once
-#include "context.h"
 #include "test.h"
 
-#include <functional>
-#include <string>
+#include <memory>
 
 namespace dhe {
 namespace unit {
   class Suite {
   public:
-    void addContext(std::string const &name, std::function<void()> const &body);
-
-    void addBefore(std::function<void()> const &body);
-
-    void addTest(std::string const &name, const std::function<void()> &body);
-
-    void addAfter(std::function<void()> const &body);
+    void addTest(std::shared_ptr<Test> const &test);
 
     void run();
 
   private:
-    std::vector<Context> contexts{{"suite", nullptr}};
-    std::vector<Test const> tests{};
-    Context *context{&contexts[0]};
+    std::vector<std::shared_ptr<Test>> tests{};
   }; // namespace unit
 
   auto suite() -> Suite &;

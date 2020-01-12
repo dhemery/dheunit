@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -8,7 +9,7 @@ namespace dhe {
 namespace unit {
   class Context {
   public:
-    Context(std::string name, Context *parent);
+    Context(std::string name, std::shared_ptr<Context> parent);
 
     void addBefore(std::function<void()> const &before);
 
@@ -20,7 +21,7 @@ namespace unit {
 
   private:
     std::string const name;
-    Context *parent;
+    std::shared_ptr<Context> const parent;
     std::vector<std::function<void()>> befores;
     std::vector<std::function<void()>> afters;
   };
