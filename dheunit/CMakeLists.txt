@@ -1,27 +1,13 @@
-add_library(dheunit)
+add_subdirectory(suite)
+add_subdirectory(runner)
+add_subdirectory(dsl)
 
-target_include_directories(dheunit
-        PUBLIC
-        include
-        PRIVATE
-        suite
-        )
-
-target_sources(dheunit
-        INTERFACE
-        include/dheunit.h
-        PRIVATE
-        dsl/dheunit.cpp
-        runner/main.cpp
-        suite/context.cpp
-        suite/context.h
-        suite/suite.cpp
-        suite/suite.h
-        suite/test.cpp
-        suite/test.h
-        )
+add_library(dheunit STATIC)
 
 target_link_libraries(dheunit
         PUBLIC
-        snowhouse
+        dsl
+        PRIVATE
+        suite
+        runner
         )

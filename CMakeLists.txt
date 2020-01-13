@@ -3,6 +3,8 @@ project(dheunit)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_subdirectory(dheunit)
-add_subdirectory(examples)
+enable_testing()
+
 add_subdirectory(snowhouse)
+add_subdirectory(dheunit)
+add_subdirectory(test)
