@@ -1,4 +1,7 @@
 [submodule "snowhouse"]
-	path = snowhouse
+	path = external/snowhouse
 	url = https://github.com/banditcpp/snowhouse
 	branch = headers-only
+[submodule "external/cxxopts"]
+	path = external/cxxopts
+	url = git@github.com:jarro2783/cxxopts.git

@@ -8,4 +8,6 @@ target_sources(runner
 target_link_libraries(runner
         PUBLIC
         suite
+        PRIVATE
+        cxxopts
         )

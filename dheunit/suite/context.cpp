@@ -29,7 +29,7 @@ namespace unit {
     }
   }
   auto Context::description() const -> std::string {
-    if(parent) {
+    if (parent) {
       return parent->description() + "::" + name;
     }
     return name;
