@@ -9,5 +9,4 @@ target_link_libraries(runner
         PUBLIC
         suite
         PRIVATE
-        cxxopts
         )
