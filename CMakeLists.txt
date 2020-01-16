@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD 11)
 
 enable_testing()
 
-add_subdirectory(dheunit)
-add_subdirectory(test)
-add_subdirectory(external)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+
+add_subdirectory(dependencies)
+add_subdirectory(src)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  add_subdirectory(tests)
+endif()
