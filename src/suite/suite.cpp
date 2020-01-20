@@ -31,9 +31,14 @@ namespace unit {
         reportSuccess(test);
       } catch (AssertionException const &failure) {
         reportFailure(test, failure);
+      } catch (const std::exception &e) {
+        std::cout << "Caught standard exception \"" << e.what() << std::endl;
+      } catch (...) {
+        std::exception_ptr thrown = std::current_exception();
+        std::cout << "Caught unknown exception" << std::endl;
       }
     }
-  }
+  } // namespace unit
 
   auto suite() -> Suite & {
     static auto theSuite = Suite{};

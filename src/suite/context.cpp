@@ -30,9 +30,9 @@ namespace unit {
   }
   auto Context::description() const -> std::string {
     if (parent) {
-      return parent->description() + "::" + name;
+      return parent->description() + "[" + name + "]";
     }
-    return name;
+    return "[" + name + "]";
   }
 } // namespace unit
 } // namespace dhe
