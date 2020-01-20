@@ -33,36 +33,36 @@ static auto _ __attribute__((unused)) = //
           AssertThat(ranTestBody, Is().True());
         });
 
-        it("creates the context before running the test body", []() {
-          auto createdContext = false;
-          auto createdContextBeforeRunningTest = false;
+        it("sets up the context before running the test body", []() {
+          auto setUpContext = false;
+          auto setUpContextBeforeRunningTest = false;
 
           auto context = createContext();
-          context->addBefore([&]() { createdContext = true; });
+          context->addBefore([&]() { setUpContext = true; });
 
-          auto testBody = [&]() { createdContextBeforeRunningTest = createdContext; };
+          auto testBody = [&]() { setUpContextBeforeRunningTest = setUpContext; };
 
           auto test = Test{"some test", testBody, context};
 
           test.run();
 
-          AssertThat(createdContextBeforeRunningTest, Is().True());
+          AssertThat(setUpContextBeforeRunningTest, Is().True());
         });
 
-        it("destroys the context after running the test body", []() {
+        it("tears down the context after running the test body", []() {
           auto ranTest = false;
-          auto destroyedContextAfterRunningTest = false;
+          auto toreDownContextAfterRunningTest = false;
 
           auto testBody = [&]() { ranTest = true; };
 
           auto context = createContext();
-          context->addAfter([&]() { destroyedContextAfterRunningTest = ranTest; });
+          context->addAfter([&]() { toreDownContextAfterRunningTest = ranTest; });
 
           auto test = Test{"some test", testBody, context};
 
           test.run();
 
-          AssertThat(destroyedContextAfterRunningTest, Is().True());
+          AssertThat(toreDownContextAfterRunningTest, Is().True());
         });
       });
     });

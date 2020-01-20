@@ -9,6 +9,7 @@ target_link_libraries(suite-tests
 
 target_sources(suite-tests
         PRIVATE
+        context-tests.cpp
         suite-tests.cpp
         test-tests.cpp
         )

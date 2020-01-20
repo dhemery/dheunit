@@ -15,9 +15,9 @@ namespace unit {
 
     void addAfter(std::function<void()> const &after);
 
-    void create();
+    void setUp();
 
-    void destroy();
+    void tearDown();
 
     auto description() const -> std::string;
 

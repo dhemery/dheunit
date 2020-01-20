@@ -11,9 +11,9 @@ namespace unit {
   }
 
   void Test::run() {
-    context->create();
+    context->setUp();
     body();
-    context->destroy();
+    context->tearDown();
   }
   auto Test::description() const -> std::string { return context->description() + "[" + name + "]"; }
 } // namespace unit

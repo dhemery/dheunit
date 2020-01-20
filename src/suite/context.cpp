@@ -11,21 +11,21 @@ namespace unit {
 
   void Context::addAfter(std::function<void()> const &after) { afters.push_back(after); }
 
-  void Context::create() {
+  void Context::setUp() {
     if (parent) {
-      parent->create();
+      parent->setUp();
     }
     for (auto const &before : befores) {
       before();
     }
   }
 
-  void Context::destroy() {
+  void Context::tearDown() {
     for (auto after = afters.rbegin(); after != afters.rend(); after++) {
       (*after)();
     }
     if (parent) {
-      parent->destroy();
+      parent->tearDown();
     }
   }
   auto Context::description() const -> std::string {
