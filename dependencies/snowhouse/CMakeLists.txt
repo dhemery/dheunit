@@ -1,7 +1,0 @@
- FetchContent_GetProperties(snowhouse)
- if (NOT snowhouse_POPULATED)
-     FetchContent_Populate(snowhouse)
-     set(BUILD_SHARED_LIBS NO)
-     set_directory_properties(PROPERTIES EXCLUDE_FROM_ALL YES)
-     add_subdirectory(${snowhouse_SOURCE_DIR} ${snowhouse_BINARY_DIR})
- endif ()
