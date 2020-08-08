@@ -77,7 +77,7 @@ format:
 
 .PHONY: tidy
 tidy: $(COMPILATION_DATABASE_FILE)
-	clang-tidy -header-filter=*/.* -p=build $(HEADERS) $(SOURCES) $(TEST_SOURCES)
+	clang-tidy -header-filter='^(src|include|test)/' -p=build $(SOURCES) $(TEST_SOURCES)
 
 
 
