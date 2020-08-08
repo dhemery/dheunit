@@ -8,9 +8,9 @@ SOURCES = $(wildcard \
 
 OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
-all: lib
-
 lib: libdheunit.a
+
+all: lib build/runtests
 
 build/%.cpp.o: %.cpp
 	@mkdir -p $(@D)
@@ -22,7 +22,7 @@ libdheunit.a: $(OBJECTS)
 
 clean:
 	rm -rf build
-	rm libdheunit.a
+	rm -f libdheunit.a
 
 
 
@@ -45,8 +45,10 @@ build/test/%.cpp.o: test/%.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-build/runtests: $(TEST_OBJECTS) libdheunit.a
-	$(CXX)  -L. $(LDFLAGS) -o $@ $< -ldheunit
+build/runtests: libdheunit.a
+
+build/runtests: $(TEST_OBJECTS)
+	$(CXX)  -L. $(LDFLAGS) -o $@ $^ -ldheunit
 
 test: build/runtests
 	build/runtests
