@@ -1,19 +1,24 @@
 #pragma once
-#include "test.h"
 
-#include <memory>
+#include <functional>
+#include <vector>
 
 namespace dhe {
 namespace unit {
+  class Reporter {
+    void error(std::string);
+    void fatal(std::string);
+  };
+
   class Suite {
   public:
-    void addTest(std::shared_ptr<Test> const &test);
+    void add(std::function<void(Reporter &)> const &test);
 
     void run();
 
   private:
-    std::vector<std::shared_ptr<Test>> tests{};
-  }; // namespace unit
+    std::vector<std::function<void(Reporter &)>> tests{};
+  };
 
   auto suite() -> Suite &;
 } // namespace unit

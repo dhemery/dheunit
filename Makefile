@@ -1,27 +1,24 @@
-
 FLAGS += -Isrc
 LDFLAGS +=
+CXXFLAGS += -std=c++11 -stdlib=libc++
+CXXFLAGS += $(FLAGS)
+
 SOURCES = $(wildcard \
 		src/*.cpp \
 		src/*/*.cpp \
 		src/*/*/*.cpp \
 		)
 
-OBJECTS := $(patsubst %.cpp,build/%.o,$(SOURCES))
+OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
 lib: libdheunit.a
 
-build:
-	@mkdir -p $@
-
-build/src/%.o: src/%.cpp
-	$(CXX) $(FLAGS) -o $@ -c $^
-
-
-$(OBJECTS): build
+build/%.cpp.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 libdheunit.a: $(OBJECTS)
-	$(CXX) $(FLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 
 
@@ -34,7 +31,7 @@ libdheunit.a: $(OBJECTS)
 
 COMPILATION_DATABASE_FILE = compile_commands.json
 
-COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES) $(DOCTEST_SOURCES))
+COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES))
 
 build/src/%.json: src/%
 	@mkdir -p $(@D)
