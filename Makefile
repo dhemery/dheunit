@@ -9,21 +9,13 @@ SOURCES = $(wildcard \
 
 OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
-lib: libdheunit.a
-
-all: lib build/runtests
-
-build/%.cpp.o: %.cpp
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-libdheunit.a: $(OBJECTS)
+TARGET = libdheunit.a
+$(TARGET): $(OBJECTS)
 	ar rcu $@ $^
 	ranlib $@
 
-clean:
-	rm -rf build
-	rm -f libdheunit.a
+.PHONY: all
+all: testrunner
 
 
 
@@ -42,11 +34,21 @@ TEST_SOURCES = $(wildcard \
 
 TEST_OBJECTS := $(patsubst %, build/%.o, $(TEST_SOURCES))
 
-build/runtests: $(TEST_OBJECTS)
-	$(CXX)  -L. $(LDFLAGS) -o $@ $^ -ldheunit
+TEST_RUNNER = build/runtests
 
-test: build/runtests
-	build/runtests
+$(TEST_RUNNER): LDFLAGS += -L. -ldheunit
+
+$(TEST_RUNNER): $(TEST_OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+.PHONY: testrunner
+testrunner: $(TARGET) $(TEST_RUNNER)
+
+.PHONY: test
+test: testrunner
+	$(TEST_RUNNER)
+
+
 
 
 ########################################################################
@@ -59,34 +61,45 @@ COMPILATION_DATABASE_FILE = compile_commands.json
 
 COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES) $(TEST_SOURCES))
 
-build/src/%.json: src/%
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
-
-build/test/%.json: test/%
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
-
 $(COMPILATION_DATABASE_FILE): $(COMPILATION_DATABASE_JSONS)
 	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@
 
 HEADERS = $(wildcard \
+		include/*.h \
 		src/*.h \
 		src/*/*.h \
 		src/*/*/*.h \
 		)
 
+.PHONY: format
 format:
 	clang-format -i -style=file $(HEADERS) $(SOURCES) $(TEST_SOURCES)
 
+.PHONY: tidy
 tidy: $(COMPILATION_DATABASE_FILE)
-	clang-tidy -header-filter=src/.* -p=build $(SOURCES) $(TEST_SOURCES)
+	clang-tidy -header-filter=*/.* -p=build $(HEADERS) $(SOURCES) $(TEST_SOURCES)
 
-cleancdb:
-	rm -rf $(COMPILATION_DATABASE_FILE) $(COMPILATION_DATABASE_JSONS)
 
-clean: cleancdb
 
-.PHONY: format tidy cleancdb
--include $(OBJECTS:.o=.d)
--include $(TEST_OBJECTS:.o=.d)
+
+########################################################################
+#
+# General rules
+#
+########################################################################
+
+DEPENDENCIES = $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
+-include $(DEPENDENCIES)
+
+build/%.o: %
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+build/%.json: %
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
+
+clean:
+	rm -rf build
+	rm -f libdheunit.a
+	rm -rf $(COMPILATION_DATABASE_FILE)
