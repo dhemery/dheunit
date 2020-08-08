@@ -1,4 +1,5 @@
 CXXFLAGS += -Isrc -std=c++11 -stdlib=libc++
+CXXFLAGS += -MMD -MP
 
 SOURCES = $(wildcard \
 		src/*.cpp \
@@ -93,3 +94,5 @@ cleancdb:
 clean: cleancdb
 
 .PHONY: format tidy cleancdb
+-include $(OBJECTS:.o=.d)
+-include $(TEST_OBJECTS:.o=.d)
