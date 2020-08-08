@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace dhe {
@@ -12,7 +13,7 @@ namespace unit {
 
   class Suite {
   public:
-    void add(std::function<void(Reporter &)> const &test);
+    void test(std::function<void(Reporter &)> const &test);
 
     void run();
 

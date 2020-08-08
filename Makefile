@@ -11,6 +11,8 @@ SOURCES = $(wildcard \
 
 OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
+all: lib
+
 lib: libdheunit.a
 
 build/%.cpp.o: %.cpp
@@ -20,7 +22,9 @@ build/%.cpp.o: %.cpp
 libdheunit.a: $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-
+clean:
+	rm -rf build
+	rm libdheunit.a
 
 
 ########################################################################
@@ -35,11 +39,11 @@ COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES))
 
 build/src/%.json: src/%
 	@mkdir -p $(@D)
-	$(CXX) $(FLAGS) -MJ $@ -c -o build/$^.o $^
+	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
 
 build/test/%.json: test/%
 	@mkdir -p $(@D)
-	$(CXX) $(FLAGS) -MJ $@ -c -o build/$^.o $^
+	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
 
 $(COMPILATION_DATABASE_FILE): $(COMPILATION_DATABASE_JSONS)
 	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@

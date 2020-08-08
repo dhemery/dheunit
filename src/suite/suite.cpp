@@ -1,11 +1,10 @@
 #include "suite.h"
 
 #include <iostream>
-#include <sstream>
 
 namespace dhe {
 namespace unit {
-  void Suite::add(std::function<void(Reporter &)> const &test) { tests.push_back(test); }
+  void Suite::test(std::function<void(Reporter &)> const &test) { tests.push_back(test); }
 
   void Suite::run() {
     for (const auto &test : tests) {
