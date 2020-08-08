@@ -4,9 +4,14 @@
 
 namespace dhe {
 namespace unit {
-  void Suite::test(std::function<void(Reporter &)> const &test) { tests.push_back(test); }
+  auto Suite::test(std::function<void(Reporter &)> const &test) -> Suite & {
+    std::cout << "Adding a test" << std::endl;
+    tests.push_back(test);
+    return *this;
+  }
 
   void Suite::run() {
+    std::cout << "Running " << tests.size() << " things" << std::endl;
     for (const auto &test : tests) {
       auto reporter = Reporter{};
       try {

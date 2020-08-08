@@ -1,7 +1,4 @@
-FLAGS += -Isrc
-LDFLAGS +=
-CXXFLAGS += -std=c++11 -stdlib=libc++
-CXXFLAGS += $(FLAGS)
+CXXFLAGS += -Isrc -std=c++11 -stdlib=libc++
 
 SOURCES = $(wildcard \
 		src/*.cpp \
@@ -20,11 +17,39 @@ build/%.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 libdheunit.a: $(OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	ar rcu $@ $^
+	ranlib $@
 
 clean:
 	rm -rf build
 	rm libdheunit.a
+
+
+
+
+########################################################################
+#
+# Build and run tests
+#
+########################################################################
+
+TEST_SOURCES = $(wildcard \
+		test/*.cpp \
+		test/*/*.cpp \
+		test/*/*/*.cpp \
+		)
+
+TEST_OBJECTS := $(patsubst %, build/%.o, $(TEST_SOURCES))
+
+build/test/%.cpp.o: test/%.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+build/runtests: $(TEST_OBJECTS) libdheunit.a
+	$(CXX)  -L. $(LDFLAGS) -o $@ $< -ldheunit
+
+test: build/runtests
+	build/runtests
 
 
 ########################################################################

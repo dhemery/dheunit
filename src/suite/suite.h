@@ -13,7 +13,7 @@ namespace unit {
 
   class Suite {
   public:
-    void test(std::function<void(Reporter &)> const &test);
+    auto test(std::function<void(Reporter &)> const &test) -> Suite&;
 
     void run();
 
