@@ -1,14 +1,14 @@
-#include "Test.h"
+#include "dheunit.h"
 
-using dhe::unit::Test;
 using dhe::unit::Reporter;
+using dhe::unit::Test;
 
 class MyTest : public Test {
 public:
   MyTest() : Test{"my!!test"} {}
-  void run(Reporter &r) override {
-    r.fatal("hey a fatal thing");
-    r.error("hey an error thing");
+  void run(Reporter *r) override {
+    r->fatal("hey a fatal thing");
+    r->error("hey an error thing");
   }
 };
 

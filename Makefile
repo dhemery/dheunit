@@ -1,4 +1,4 @@
-CXXFLAGS += -Isrc -std=c++11 -stdlib=libc++
+CXXFLAGS += -Iinclude -std=c++11 -stdlib=libc++
 CXXFLAGS += -MMD -MP
 
 SOURCES = $(wildcard \
@@ -42,12 +42,6 @@ TEST_SOURCES = $(wildcard \
 
 TEST_OBJECTS := $(patsubst %, build/%.o, $(TEST_SOURCES))
 
-build/test/%.cpp.o: test/%.cpp
-	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-build/runtests: libdheunit.a
-
 build/runtests: $(TEST_OBJECTS)
 	$(CXX)  -L. $(LDFLAGS) -o $@ $^ -ldheunit
 
@@ -63,7 +57,7 @@ test: build/runtests
 
 COMPILATION_DATABASE_FILE = compile_commands.json
 
-COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES))
+COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES) $(TEST_SOURCES))
 
 build/src/%.json: src/%
 	@mkdir -p $(@D)
@@ -83,10 +77,10 @@ HEADERS = $(wildcard \
 		)
 
 format:
-	clang-format -i -style=file $(HEADERS) $(SOURCES)
+	clang-format -i -style=file $(HEADERS) $(SOURCES) $(TEST_SOURCES)
 
 tidy: $(COMPILATION_DATABASE_FILE)
-	clang-tidy -header-filter=src/.* -p=build $(SOURCES)
+	clang-tidy -header-filter=src/.* -p=build $(SOURCES) $(TEST_SOURCES)
 
 cleancdb:
 	rm -rf $(COMPILATION_DATABASE_FILE) $(COMPILATION_DATABASE_JSONS)
