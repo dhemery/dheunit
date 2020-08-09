@@ -1,11 +1,7 @@
 CXXFLAGS += -Iinclude -std=c++11 -stdlib=libc++
 CXXFLAGS += -MMD -MP
 
-SOURCES = $(wildcard \
-		src/*.cpp \
-		src/*/*.cpp \
-		src/*/*/*.cpp \
-		)
+SOURCES = $(shell find src -name "*.cpp")
 
 OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
@@ -26,20 +22,14 @@ all: testrunner
 #
 ########################################################################
 
-TEST_SOURCES = $(wildcard \
-		test/*.cpp \
-		test/*/*.cpp \
-		test/*/*/*.cpp \
-		)
+TEST_SOURCES = $(shell find test -name "*.cpp")
 
 TEST_OBJECTS := $(patsubst %, build/%.o, $(TEST_SOURCES))
 
 TEST_RUNNER = build/runtests
 
-$(TEST_RUNNER): LDFLAGS += -L. -ldheunit
-
-$(TEST_RUNNER): $(TEST_OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+$(TEST_RUNNER): $(TEST_OBJECTS) $(TARGET)
+	$(CXX) -o $@ $(TEST_OBJECTS) -L. -ldheunit $(LDFLAGS)
 
 .PHONY: testrunner
 testrunner: $(TARGET) $(TEST_RUNNER)
@@ -57,26 +47,21 @@ test: testrunner
 #
 ########################################################################
 
-COMPILATION_DATABASE_FILE = compile_commands.json
-
-COMPILATION_DATABASE_JSONS := $(patsubst %, build/%.json, $(SOURCES) $(TEST_SOURCES))
-
-$(COMPILATION_DATABASE_FILE): $(COMPILATION_DATABASE_JSONS)
-	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@
-
-HEADERS = $(wildcard \
-		include/*.h \
-		src/*.h \
-		src/*/*.h \
-		src/*/*/*.h \
-		)
+HEADERS = $(shell find include src -name "*.h")
 
 .PHONY: format
 format:
 	clang-format -i -style=file $(HEADERS) $(SOURCES) $(TEST_SOURCES)
 
+COMPILATION_DB = compile_commands.json
+
+COMPILATION_DB_ENTRIES := $(patsubst %, build/%.json, $(SOURCES) $(TEST_SOURCES))
+
+$(COMPILATION_DB): $(COMPILATION_DB_ENTRIES)
+	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@
+
 .PHONY: tidy
-tidy: $(COMPILATION_DATABASE_FILE)
+tidy: $(COMPILATION_DB)
 	clang-tidy -header-filter='^(src|include|test)/' -p=build $(SOURCES) $(TEST_SOURCES)
 
 
@@ -88,8 +73,8 @@ tidy: $(COMPILATION_DATABASE_FILE)
 #
 ########################################################################
 
-DEPENDENCIES = $(OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
--include $(DEPENDENCIES)
+-include $(OBJECTS:.o=.d)
+-include $(TEST_OBJECTS:.o=.d)
 
 build/%.o: %
 	@mkdir -p $(@D)
@@ -102,4 +87,4 @@ build/%.json: %
 clean:
 	rm -rf build
 	rm -f libdheunit.a
-	rm -rf $(COMPILATION_DATABASE_FILE)
+	rm -rf $(COMPILATION_DB)
