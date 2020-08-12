@@ -1,24 +1,24 @@
 #include "Runner.h"
 
-#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace dhe {
 namespace unit {
-  void Runner::log(const std::string &msg) {
-    std::cout << msg << std::endl;
-    testLogs.push_back(msg);
+  auto Runner::log() -> std::ostream & {
+    testLogs.emplace_back();
+    return testLogs.back();
   }
 
-  void Runner::error(const std::string &msg) {
-    log(msg);
+  auto Runner::error() -> std::ostream & {
     fail();
+    return log();
   }
 
-  void Runner::fatal(const std::string &msg) {
-    log(msg);
+  auto Runner::fatal() -> std::ostream & {
     failNow();
+    return log();
   }
 
   void Runner::fail() { testFailed = true; }
@@ -30,16 +30,21 @@ namespace unit {
 
   auto Runner::failed() const -> bool { return testFailed; }
 
-  auto Runner::logs() const -> std::vector<std::string> { return testLogs; }
+  auto Runner::logs() const -> std::vector<std::string> {
+    auto logStrings = std::vector<std::string>{testLogs.size()};
+    for (auto const &logStream : testLogs) {
+      logStrings.push_back(logStream.str());
+    }
+    return logStrings;
+  }
 
   void Runner::run(Test *test) {
     try {
       test->run(this);
     } catch (const std::exception &e) {
-      std::cout << "Caught standard exception \"" << e.what() << std::endl;
+      fatal() << "Unexpected exception: " << e.what();
     } catch (...) {
-      std::exception_ptr thrown = std::current_exception();
-      std::cout << "Caught unknown exception" << std::endl;
+      fatal() << "Unexpected unrecognized exception";
     }
   }
 } // namespace unit

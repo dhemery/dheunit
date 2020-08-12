@@ -1,6 +1,7 @@
 #include "Runner.h"
 #include "dheunit.h"
 
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -11,9 +12,14 @@ namespace unit {
     void add(Test *test) { tests.push_back(test); }
 
     auto run() -> int {
-      for (const auto &test : tests) {
+      for (auto *test : tests) {
         auto runner = Runner{};
         runner.run(test);
+        auto const &result = runner.failed() ? "FAILED " : "PASSED ";
+        std::cout << result << test->name() << std::endl;
+        for (auto const &log : runner.logs()) {
+          std::cout << "    " << log << std::endl;
+        }
       }
       return 0;
     }
@@ -27,7 +33,7 @@ namespace unit {
     return theSuite;
   }
 
-  Test::Test(std::string name) : name{std::move(name)} { suite().add(this); }
+  Test::Test(std::string name) : testName{std::move(name)} { suite().add(this); }
 
   auto Test::runAll() -> int { return suite().run(); }
 } // namespace unit

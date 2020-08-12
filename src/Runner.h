@@ -2,6 +2,7 @@
 
 #include "dheunit.h"
 
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -9,9 +10,9 @@ namespace dhe {
 namespace unit {
   class Runner : public virtual Reporter {
   public:
-    void log(const std::string &msg) override;
-    void error(const std::string &msg) override;
-    void fatal(const std::string &msg) override;
+    auto log() -> std::ostream & override;
+    auto error() -> std::ostream & override;
+    auto fatal() -> std::ostream & override;
     void fail() override;
     void failNow() override;
 
@@ -21,7 +22,7 @@ namespace unit {
 
   private:
     bool testFailed{false};
-    std::vector<std::string> testLogs{};
+    std::vector<std::ostringstream> testLogs{};
   };
 } // namespace unit
 } // namespace dhe
