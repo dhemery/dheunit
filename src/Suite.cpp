@@ -12,6 +12,44 @@ namespace unit {
 
   class TestLogger : public Logger {
   public:
+    void logf(const char *format, ...) override {
+      va_list args1;
+      va_start(args1, format);
+      va_list args2;
+      va_copy(args2, args1);
+      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
+      va_end(args1);
+      std::vsnprintf(buf.data(), buf.size(), format, args2);
+      va_end(args2);
+      logEntry(buf.data());
+    }
+
+    void errorf(char const *format, ...) override {
+      va_list args1;
+      va_start(args1, format);
+      va_list args2;
+      va_copy(args2, args1);
+      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
+      va_end(args1);
+      std::vsnprintf(buf.data(), buf.size(), format, args2);
+      va_end(args2);
+      logEntry(buf.data());
+      fail();
+    }
+
+    void fatalf(char const *format, ...) override {
+      va_list args1;
+      va_start(args1, format);
+      va_list args2;
+      va_copy(args2, args1);
+      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
+      va_end(args1);
+      std::vsnprintf(buf.data(), buf.size(), format, args2);
+      va_end(args2);
+      logEntry(buf.data());
+      failNow();
+    }
+
     void fail() override { testFailed = true; }
 
     void failNow() override {
@@ -19,7 +57,7 @@ namespace unit {
       throw FailNowException{};
     }
 
-    auto failed() const -> bool override { return testFailed; }
+    auto failed() const -> bool { return testFailed; }
 
     auto entries() -> std::vector<std::string> { return logEntries; }
 
@@ -53,14 +91,11 @@ namespace unit {
       for (auto *test : tests) {
         auto logger = TestLogger{};
         runTest(*test, logger);
-        if (logger.failed()) {
-          failed = true;
-          std::cout << "FAILED: " << test->name() << std::endl;
-          for (auto const &entry : logger.entries()) {
-            std::cout << "    " << entry << std::endl;
-          }
-        } else {
-          std::cout << "PASSED: " << test->name() << std::endl;
+        auto const *label = logger.failed() ? "FAILED: " : "PASSED: ";
+        failed = true;
+        std::cout << label << test->name() << std::endl;
+        for (auto const &entry : logger.entries()) {
+          std::cout << "    " << entry << std::endl;
         }
       }
       return failed;
@@ -75,8 +110,10 @@ namespace unit {
     return theSuite;
   }
 
-  Test::Test(std::string name) : testName{std::move(name)} { suite().add(*this); }
+  auto runTests() -> bool { return suite().run(); };
 
-  auto Test::runAll() -> bool { return suite().run(); }
+  Test::Test(std::string name) : tName{std::move(name)} { suite().add(*this); }
+
+  auto Test::name() const -> std::string const & { return tName; }
 } // namespace unit
 } // namespace dhe

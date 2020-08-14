@@ -15,6 +15,8 @@ public:
   }
 };
 
+static FailingTest failingTest __attribute__((unused)){};
+
 class PassingTest : public Test {
 public:
   PassingTest() : Test{"PassingTest"} {}
@@ -23,12 +25,14 @@ public:
     l.log("hey another log thing");
   }
 };
+static PassingTest passingTest __attribute__((unused)){};
 
 class ThrowingTest : public Test {
 public:
   ThrowingTest() : Test{"ThrowingTest"} {}
   void run(Logger & /**/) override { throw std::invalid_argument{"thrown by test"}; }
 };
+static ThrowingTest throwingTest __attribute__((unused)){};
 
 class StringThrowingTest : public Test {
 public:
@@ -36,7 +40,16 @@ public:
   void run(Logger & /**/) override { throw "string thrown by test"; }
 };
 
-static FailingTest failingTest __attribute__((unused)){};
-static PassingTest passingTest __attribute__((unused)){};
-static ThrowingTest throwingTest __attribute__((unused)){};
 static StringThrowingTest stringThrowingTest __attribute__((unused)){};
+
+class FormattingTest : public Test {
+public:
+  FormattingTest() : Test{"FormattingTest"} {}
+  void run(Logger &l) override {
+    l.logf("%d .. %s", true, " log monkey");
+    l.errorf("%d .. %s", false, "error monkey");
+    l.fatalf("%d..%s", 3, "fatal monkey");
+  }
+};
+
+static FormattingTest formattingTest __attribute__((unused)){};

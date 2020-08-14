@@ -1,3 +1,3 @@
 #include "dheunit.h"
 
-auto main() -> int { dhe::unit::Test::runAll(); }
+auto main() -> int { dhe::unit::runTests(); }
