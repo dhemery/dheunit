@@ -22,7 +22,7 @@ namespace unit {
     Test(std::string const &name);
 
     /**
-     * Executes the test.
+     * Called by the test runner to execute this test.
      */
     virtual void run(Tester &logger) = 0;
   };
@@ -37,10 +37,16 @@ namespace unit {
     Suite(std::string const &name);
 
     /**
-     * Returns this suite's map of named test functions.
+     * Called by the test runner to obtain the tests that make up this suite.
      */
     virtual auto tests() -> std::map<std::string, std::function<void(Tester &)>> = 0;
   };
+
+  /**
+   * Runs all registered suites and standalone tests.
+   * @return true iff at least one test failed
+   */
+  extern auto runTests() -> bool;
 
   /**
    * Each test function receives a tester to report test failures and other information.
@@ -52,7 +58,7 @@ namespace unit {
      */
     template <typename... Ts> void log(Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
-      logTo(entryStream, args...);
+      writeTo(entryStream, args...);
       writeLog(entryStream.str());
     }
 
@@ -78,7 +84,7 @@ namespace unit {
      */
     template <typename... Ts> void logf(char const *format, Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
-      logfTo(entryStream, format, args...);
+      writefTo(entryStream, format, args...);
       writeLog(entryStream.str());
     };
 
@@ -112,15 +118,15 @@ namespace unit {
     virtual void writeLog(std::string const &entry) = 0;
 
   private:
-    template <typename T> static void logTo(std::ostream &o, T &&t) { o << t; }
+    template <typename T> static void writeTo(std::ostream &o, T &&t) { o << t; }
 
-    template <typename T, typename... Ts> static void logTo(std::ostream &o, T &&t, Ts &&... ts) {
-      logTo(o, t);
+    template <typename T, typename... Ts> static void writeTo(std::ostream &o, T &&t, Ts &&... ts) {
+      writeTo(o, t);
       o << ' ';
-      logTo(o, ts...);
+      writeTo(o, ts...);
     }
 
-    static void logfTo(std::ostream &o, char const *f) {
+    static void writefTo(std::ostream &o, char const *f) {
       if (f == nullptr) {
         return;
       }
@@ -132,22 +138,16 @@ namespace unit {
       }
     }
 
-    template <typename T, typename... Ts> static void logfTo(std::ostream &o, char const *f, T &&t, Ts &&... ts) {
+    template <typename T, typename... Ts> static void writefTo(std::ostream &o, char const *f, T &&t, Ts &&... ts) {
       while (f && *f) {
         if (*f == '{' && *++f == '}') {
           o << t;
-          return logfTo(o, ++f, ts...);
+          return writefTo(o, ++f, ts...);
         }
         o << *f++;
       }
       throw std::runtime_error{"dhe::unit: too many arguments for log format"};
     }
   };
-
-  /**
-   * Runs all registered tests.
-   * @return true iff at least one test failed
-   */
-  extern auto runTests() -> bool;
 } // namespace unit
 } // namespace dhe

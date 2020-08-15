@@ -2,16 +2,27 @@
 
 #include "dheunit.h"
 
+#include <functional>
+#include <map>
+#include <string>
+
 using dhe::Latch;
 using dhe::unit::Tester;
 
 namespace dhe {
 namespace components {
 
-  class LatchEqualityTest : public unit::Test {
+  class LatchEqualitySuite : public unit::Suite {
   public:
-    LatchEqualityTest() : Test{"Latch equality"} {}
-    void run(Tester &t) override {
+    LatchEqualitySuite() : Suite{"Latch equality"} {}
+
+    auto tests() -> std::map<std::string, std::function<void(Tester &)>> override {
+      auto testMap = std::map<std::string, std::function<void(Tester &)>>{};
+      testMap["foo"] = [this](Tester &t) { run(t); };
+      return testMap;
+    }
+
+    static void run(Tester &t) {
       auto const a = Latch{false, false};
       auto const b = Latch{false, false};
       if (!(a == b)) {
@@ -20,7 +31,7 @@ namespace components {
     }
   };
 
-  static LatchEqualityTest latchEqualityTest __attribute__((unused)){};
+  static LatchEqualitySuite latchEqualityTest __attribute__((unused)){};
 
   /*
 

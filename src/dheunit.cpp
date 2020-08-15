@@ -50,9 +50,9 @@ namespace unit {
 
   class TestRun {
   public:
-    auto run() -> bool {
+    auto run() const -> bool {
       auto failed{false};
-      for (auto &pair : tests) {
+      for (auto &pair : tests()) {
         auto runner = Runner{pair.second};
         auto const result = runner.run();
         auto const *label = result.failed ? "FAILED: " : "PASSED: ";
@@ -65,18 +65,28 @@ namespace unit {
       return failed;
     }
 
-    void registerSuite(std::string const &name, Suite *suite) {
-      for (const auto &test : suite->tests()) {
-        tests[name + '/' + test.first] = test.second;
+    auto tests() const -> std::map<std::string, std::function<void(Tester &)>> {
+      auto allTests = std::map<std::string, std::function<void(Tester &)>>{};
+      for (auto const &test : standaloneTests) {
+        allTests[test.first] = test.second;
       }
+      for (auto const &suite : suites) {
+        for (auto const &test : suite.second->tests()) {
+          allTests[suite.first + '/' + test.first] = test.second;
+        }
+      }
+      return allTests;
     }
 
+    void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }
+
     void registerTest(std::string const &name, Test *test) {
-      tests[name] = [test](Tester &t) { test->run(t); };
+      standaloneTests[name] = [test](Tester &t) { test->run(t); };
     }
 
   private:
-    std::map<std::string, std::function<void(Tester &)>> tests{};
+    std::map<std::string, Suite *> suites{};
+    std::map<std::string, std::function<void(Tester &)>> standaloneTests{};
   };
 
   static auto testRun() -> TestRun & {
