@@ -77,15 +77,15 @@ namespace unit {
 
   Test::Test(std::string const &name) { suite().add(name, this); }
 
-  void Logger::logfTo(std::ostream &o, char const *format) {
-    if (format == nullptr) {
+  void Logger::logfTo(std::ostream &o, char const *f) {
+    if (f == nullptr) {
       return;
     }
-    while (*format != 0) {
-      if (*format == '%' && *++format != '%') {
-        throw std::runtime_error{"invalid format: missing arguments"};
+    while (*f != 0) {
+      if (*f == '{' && *++f == '}') {
+        throw std::runtime_error{"dhe::unit: too few arguments for log format"};
       }
-      o << *format;
+      o << *f++;
     }
   }
 } // namespace unit

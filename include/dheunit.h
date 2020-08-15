@@ -7,10 +7,11 @@
 
 namespace dhe {
 namespace unit {
+
   class Logger {
   public:
     /**
-     * Writes the string representation of each arg to the test's log.
+     * Writes the string representation of each arg to the test's log, separated by spaces.
      */
     template <typename... Ts> void log(Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
@@ -78,13 +79,21 @@ namespace unit {
 
     template <typename T, typename... Ts> static void logTo(std::ostream &o, T &&t, Ts &&... ts) {
       logTo(o, t);
+      o << ' ';
       logTo(o, ts...);
     }
 
-    static void logfTo(std::ostream &o, char const *format);
+    static void logfTo(std::ostream &o, char const *f);
 
-    template <typename... Ts> static void logfTo(std::ostream &o, char const *format, Ts &&... ts) {
-      logTo(o, format, ts...);
+    template <typename T, typename... Ts> static void logfTo(std::ostream &o, char const *f, T &&t, Ts &&... ts) {
+      while (f && *f) {
+        if (*f == '{' && *++f == '}') {
+          o << t;
+          return logfTo(o, ++f, ts...);
+        }
+        o << *f++;
+      }
+      throw std::runtime_error{"dhe::unit: too many arguments for log format"};
     }
   };
 
@@ -103,7 +112,7 @@ namespace unit {
 
   /**
    * Runs all registered tests.
-   * @return whether one or more tests failed.
+   * @return true iff at least one test failed
    */
   extern auto runTests() -> bool;
 } // namespace unit

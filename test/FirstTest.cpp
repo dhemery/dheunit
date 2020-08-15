@@ -9,7 +9,7 @@ public:
   void run(Logger &l) override {
     auto constexpr someInt{9};
     auto constexpr someBool{true};
-    l.log("hey a log thing ", someInt, " ", someBool);
+    l.log("hey a log thing", someInt, someBool);
     l.error("hey an error thing");
     l.fatal("hey a fatal thing");
   }
@@ -46,9 +46,9 @@ class FormattingTest : public Test {
 public:
   FormattingTest() : Test{"FormattingTest"} {}
   void run(Logger &l) override {
-    l.logf("% .. %", true, " log monkey");
-    l.errorf("% .. %", false, "error monkey");
-    l.fatalf("% .. %", 3, "fatal monkey");
+    l.logf("{} → {}", true, false);
+    l.errorf("{} →→→→ {} extra stuff beyond the parameters", false, "error monkey");
+    l.fatalf("{} →→→→ {}", 3, "fatal monkey");
   }
 };
 
