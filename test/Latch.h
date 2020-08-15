@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 namespace dhe {
@@ -29,6 +30,8 @@ public:
   friend auto operator<<(std::ostream &o, Latch const &l) -> std::ostream & {
     return o << "Latch{" << l.isHigh() << ',' << l.isEdge() << '}';
   }
+
+  auto str() const -> std::string { return (std::ostringstream{} << *this).str(); }
 
 private:
   bool state{};

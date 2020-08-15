@@ -5,6 +5,8 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 using dhe::Latch;
 using dhe::unit::Tester;
@@ -18,16 +20,17 @@ namespace components {
 
     auto tests() -> std::map<std::string, std::function<void(Tester &)>> override {
       auto testMap = std::map<std::string, std::function<void(Tester &)>>{};
-      testMap["foo"] = [this](Tester &t) { run(t); };
-      return testMap;
-    }
-
-    static void run(Tester &t) {
-      auto const a = Latch{false, false};
-      auto const b = Latch{false, false};
-      if (!(a == b)) {
-        t.error("Expected", a, "to equal", b);
+      auto states = std::vector<std::pair<bool, bool>>{{false, false}, {false, true}, {true, false}, {true, true}};
+      for (auto const &state : states) {
+        auto const a = Latch{state.first, state.second};
+        auto const b = Latch{state.first, state.second};
+        testMap[a.str()] = [a, b](Tester &t) {
+          if (!(a == b)) {
+            t.error("Expected", a, "to equal", b);
+          }
+        };
       }
+      return testMap;
     }
   };
 
