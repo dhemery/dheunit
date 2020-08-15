@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <map>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -8,15 +10,50 @@
 namespace dhe {
 namespace unit {
 
-  class Logger {
-  public:
+  struct Tester;
+
+  /**
+   * A standalone test (not part of a suite).
+   */
+  struct Test {
+    /**
+     * Constructs a test and registers it by name.
+     */
+    Test(std::string const &name);
+
+    /**
+     * Executes the test.
+     */
+    virtual void run(Tester &logger) = 0;
+  };
+
+  /**
+   * A suite of tests.
+   */
+  struct Suite {
+    /**
+     * Constructs a test suite and registers it by name.
+     */
+    Suite(std::string const &name);
+
+    /**
+     * Returns this suite's map of named test functions.
+     */
+    virtual auto tests() -> std::map<std::string, std::function<void(Tester &)>> = 0;
+  };
+
+  /**
+   * Each test function receives a tester to report test failures and other information.
+   * A test ends when it calls fatal() or failNow() or when it returns.
+   */
+  struct Tester {
     /**
      * Writes the string representation of each arg to the test's log, separated by spaces.
      */
     template <typename... Ts> void log(Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
       logTo(entryStream, args...);
-      addEntry(entryStream.str());
+      writeLog(entryStream.str());
     }
 
     /**
@@ -42,7 +79,7 @@ namespace unit {
     template <typename... Ts> void logf(char const *format, Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
       logfTo(entryStream, format, args...);
-      addEntry(entryStream.str());
+      writeLog(entryStream.str());
     };
 
     /**
@@ -62,17 +99,17 @@ namespace unit {
     };
 
     /**
-     * Marks the test as failing and continues executing it.
+     * Marks the test as failed and continues executing it.
      */
     virtual void fail() = 0;
 
     /**
-     * Marks the test as failing and stops executing it.
+     * Marks the test as failed and stops executing it.
      */
     virtual void failNow() = 0;
 
   protected:
-    virtual void addEntry(std::string entry) = 0;
+    virtual void writeLog(std::string const &entry) = 0;
 
   private:
     template <typename T> static void logTo(std::ostream &o, T &&t) { o << t; }
@@ -83,7 +120,17 @@ namespace unit {
       logTo(o, ts...);
     }
 
-    static void logfTo(std::ostream &o, char const *f);
+    static void logfTo(std::ostream &o, char const *f) {
+      if (f == nullptr) {
+        return;
+      }
+      while (*f != 0) {
+        if (*f == '{' && *++f == '}') {
+          throw std::runtime_error{"dhe::unit: too few arguments for log format"};
+        }
+        o << *f++;
+      }
+    }
 
     template <typename T, typename... Ts> static void logfTo(std::ostream &o, char const *f, T &&t, Ts &&... ts) {
       while (f && *f) {
@@ -95,19 +142,6 @@ namespace unit {
       }
       throw std::runtime_error{"dhe::unit: too many arguments for log format"};
     }
-  };
-
-  class Test {
-  public:
-    /**
-     * Constructs and registers a test with the given name.
-     */
-    Test(const std::string &name);
-
-    /**
-     * Executes the test.
-     */
-    virtual void run(Logger &logger) = 0;
   };
 
   /**

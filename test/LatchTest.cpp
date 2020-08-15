@@ -3,7 +3,7 @@
 #include "dheunit.h"
 
 using dhe::Latch;
-using dhe::unit::Logger;
+using dhe::unit::Tester;
 
 namespace dhe {
 namespace components {
@@ -11,7 +11,7 @@ namespace components {
   class LatchEqualityTest : public unit::Test {
   public:
     LatchEqualityTest() : Test{"Latch equality"} {}
-    void run(Logger &t) override {
+    void run(Tester &t) override {
       auto const a = Latch{false, false};
       auto const b = Latch{false, false};
       if (!(a == b)) {

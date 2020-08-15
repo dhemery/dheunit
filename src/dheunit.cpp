@@ -1,92 +1,93 @@
 #include "dheunit.h"
 
 #include <exception>
+#include <functional>
 #include <iostream>
-#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace dhe {
 namespace unit {
-  class FailNowException : public std::exception {};
 
-  class TestLogger : public Logger {
-  public:
-    void fail() override { testFailed = true; }
+  struct Result {
+    bool failed{false};
+    std::vector<std::string> logs{};
+  };
+
+  struct Runner : public Tester {
+    class FailNowException : public std::exception {};
+
+    Runner(std::function<void(Tester &)> test) : test{std::move(test)} {}
+
+    void fail() override { result.failed = true; }
 
     void failNow() override {
       fail();
       throw FailNowException{};
     }
 
-    auto failed() const -> bool { return testFailed; }
+    void writeLog(std::string const &entry) override { result.logs.push_back(entry); }
 
-    auto entries() -> std::vector<std::string> { return logEntries; }
-
-  protected:
-    void addEntry(std::string entry) override { logEntries.push_back(entry); }
+    auto run() -> Result {
+      try {
+        test(*this);
+      } catch (FailNowException const &ignored) {
+      } catch (char const *s) {
+        error("Unexpected string exception: ", s);
+      } catch (std::exception const &e) {
+        error("Unexpected exception: ", e.what());
+      } catch (...) {
+        error("Unrecognized exception");
+      }
+      return result;
+    }
 
   private:
-    std::vector<std::string> logEntries{};
-    bool testFailed{false};
+    Result result{};
+    std::function<void(Tester &)> test;
   };
 
-  static void runTest(Test &test, TestLogger &logger) {
-    try {
-      test.run(logger);
-    } catch (FailNowException const &ignored) {
-    } catch (char const *s) {
-      logger.error("Unexpected string exception: ", s);
-    } catch (std::exception const &e) {
-      logger.error("Unexpected exception: ", e.what());
-    } catch (...) {
-      logger.error("Unrecognized exception");
-    }
-  }
-
-  class Suite {
+  class TestRun {
   public:
-    void add(std::string const &name, Test *test) { tests[name] = test; }
-
     auto run() -> bool {
       auto failed{false};
       for (auto &pair : tests) {
-        auto logger = TestLogger{};
-        runTest(*pair.second, logger);
-        auto const *label = logger.failed() ? "FAILED: " : "PASSED: ";
+        auto runner = Runner{pair.second};
+        auto const result = runner.run();
+        auto const *label = result.failed ? "FAILED: " : "PASSED: ";
         failed = true;
         std::cout << label << pair.first << std::endl;
-        for (auto const &entry : logger.entries()) {
+        for (auto const &entry : result.logs) {
           std::cout << "    " << entry << std::endl;
         }
       }
       return failed;
     }
 
+    void registerSuite(std::string const &name, Suite *suite) {
+      for (const auto &test : suite->tests()) {
+        tests[name + '/' + test.first] = test.second;
+      }
+    }
+
+    void registerTest(std::string const &name, Test *test) {
+      tests[name] = [test](Tester &t) { test->run(t); };
+    }
+
   private:
-    std::map<std::string, Test *> tests{};
+    std::map<std::string, std::function<void(Tester &)>> tests{};
   };
 
-  static auto suite() -> Suite & {
-    static auto theSuite = Suite{};
-    return theSuite;
+  static auto testRun() -> TestRun & {
+    static auto theTestRun = TestRun{};
+    return theTestRun;
   }
 
-  auto runTests() -> bool { return suite().run(); };
+  auto runTests() -> bool { return testRun().run(); };
 
-  Test::Test(std::string const &name) { suite().add(name, this); }
+  Suite::Suite(std::string const &name) { testRun().registerSuite(name, this); }
 
-  void Logger::logfTo(std::ostream &o, char const *f) {
-    if (f == nullptr) {
-      return;
-    }
-    while (*f != 0) {
-      if (*f == '{' && *++f == '}') {
-        throw std::runtime_error{"dhe::unit: too few arguments for log format"};
-      }
-      o << *f++;
-    }
-  }
+  Test::Test(std::string const &name) { testRun().registerTest(name, this); }
 } // namespace unit
 } // namespace dhe
