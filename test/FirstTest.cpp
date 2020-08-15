@@ -46,9 +46,9 @@ class FormattingTest : public Test {
 public:
   FormattingTest() : Test{"FormattingTest"} {}
   void run(Logger &l) override {
-    l.logf("%d .. %s", true, " log monkey");
-    l.errorf("%d .. %s", false, "error monkey");
-    l.fatalf("%d..%s", 3, "fatal monkey");
+    l.logf("% .. %", true, " log monkey");
+    l.errorf("% .. %", false, "error monkey");
+    l.fatalf("% .. %", 3, "fatal monkey");
   }
 };
 

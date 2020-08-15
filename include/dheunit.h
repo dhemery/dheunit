@@ -9,46 +9,102 @@ namespace dhe {
 namespace unit {
   class Logger {
   public:
-    template <typename... Ts> void log(Ts &&... ts) {
+    /**
+     * Writes the string representation of each arg to the test's log.
+     */
+    template <typename... Ts> void log(Ts &&... args) {
       auto entryStream = std::ostringstream{} << std::boolalpha;
-      writeTo(entryStream, ts...);
-      logEntry(entryStream.str());
+      logTo(entryStream, args...);
+      addEntry(entryStream.str());
     }
 
-    template <typename... Ts> void error(Ts &&... ts) {
-      log(ts...);
+    /**
+     * Equivalent to log(args) followed by fail().
+     */
+    template <typename... Ts> void error(Ts &&... args) {
+      log(args...);
       fail();
     }
 
-    template <typename... Ts> void fatal(Ts &&... ts) {
-      log(ts...);
+    /**
+     * Equivalent to log(args) followed by failNow().
+     */
+    template <typename... Ts> void fatal(Ts &&... args) {
+      log(args...);
       failNow();
     }
-    virtual void logf(char const *format, ...) = 0;
-    virtual void errorf(char const *format, ...) = 0;
-    virtual void fatalf(char const *format, ...) = 0;
+
+    /**
+     * Writes the format string to the test's log, replacing each {} with the string representation of the corresponding
+     * arg.
+     */
+    template <typename... Ts> void logf(char const *format, Ts &&... args) {
+      auto entryStream = std::ostringstream{} << std::boolalpha;
+      logfTo(entryStream, format, args...);
+      addEntry(entryStream.str());
+    };
+
+    /**
+     * Equivalent to logf(format, args) followed by fail().
+     */
+    template <typename... Ts> void errorf(char const *format, Ts &&... args) {
+      logf(format, args...);
+      fail();
+    };
+
+    /**
+     * Equivalent to logf(format, args) followed by failNow().
+     */
+    template <typename... Ts> void fatalf(char const *format, Ts &&... args) {
+      logf(format, args...);
+      failNow();
+    };
+
+    /**
+     * Marks the test as failing and continues executing it.
+     */
     virtual void fail() = 0;
+
+    /**
+     * Marks the test as failing and stops executing it.
+     */
     virtual void failNow() = 0;
 
   protected:
-    virtual void logEntry(std::string entry) = 0;
-    template <typename T> static void writeTo(std::ostream &o, T &&t) { o << t; }
-    template <typename T, typename... Ts> static void writeTo(std::ostream &o, T &&t, Ts &&... ts) {
-      writeTo(o, t);
-      writeTo(o, ts...);
+    virtual void addEntry(std::string entry) = 0;
+
+  private:
+    template <typename T> static void logTo(std::ostream &o, T &&t) { o << t; }
+
+    template <typename T, typename... Ts> static void logTo(std::ostream &o, T &&t, Ts &&... ts) {
+      logTo(o, t);
+      logTo(o, ts...);
+    }
+
+    static void logfTo(std::ostream &o, char const *format);
+
+    template <typename... Ts> static void logfTo(std::ostream &o, char const *format, Ts &&... ts) {
+      logTo(o, format, ts...);
     }
   };
 
   class Test {
   public:
-    Test(std::string name);
-    virtual void run(Logger &) = 0;
-    auto name() const -> std::string const &;
+    /**
+     * Constructs and registers a test with the given name.
+     */
+    Test(const std::string &name);
 
-  private:
-    std::string const tName;
+    /**
+     * Executes the test.
+     */
+    virtual void run(Logger &logger) = 0;
   };
 
+  /**
+   * Runs all registered tests.
+   * @return whether one or more tests failed.
+   */
   extern auto runTests() -> bool;
 } // namespace unit
 } // namespace dhe

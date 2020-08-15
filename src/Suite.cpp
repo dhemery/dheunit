@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -12,44 +13,6 @@ namespace unit {
 
   class TestLogger : public Logger {
   public:
-    void logf(const char *format, ...) override {
-      va_list args1;
-      va_start(args1, format);
-      va_list args2;
-      va_copy(args2, args1);
-      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
-      va_end(args1);
-      std::vsnprintf(buf.data(), buf.size(), format, args2);
-      va_end(args2);
-      logEntry(buf.data());
-    }
-
-    void errorf(char const *format, ...) override {
-      va_list args1;
-      va_start(args1, format);
-      va_list args2;
-      va_copy(args2, args1);
-      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
-      va_end(args1);
-      std::vsnprintf(buf.data(), buf.size(), format, args2);
-      va_end(args2);
-      logEntry(buf.data());
-      fail();
-    }
-
-    void fatalf(char const *format, ...) override {
-      va_list args1;
-      va_start(args1, format);
-      va_list args2;
-      va_copy(args2, args1);
-      std::vector<char> buf(1 + std::vsnprintf(nullptr, 0, format, args1));
-      va_end(args1);
-      std::vsnprintf(buf.data(), buf.size(), format, args2);
-      va_end(args2);
-      logEntry(buf.data());
-      failNow();
-    }
-
     void fail() override { testFailed = true; }
 
     void failNow() override {
@@ -62,7 +25,7 @@ namespace unit {
     auto entries() -> std::vector<std::string> { return logEntries; }
 
   protected:
-    void logEntry(std::string entry) override { logEntries.push_back(entry); }
+    void addEntry(std::string entry) override { logEntries.push_back(entry); }
 
   private:
     std::vector<std::string> logEntries{};
@@ -84,16 +47,16 @@ namespace unit {
 
   class Suite {
   public:
-    void add(Test &test) { tests.push_back(&test); }
+    void add(std::string const &name, Test *test) { tests[name] = test; }
 
     auto run() -> bool {
       auto failed{false};
-      for (auto *test : tests) {
+      for (auto &pair : tests) {
         auto logger = TestLogger{};
-        runTest(*test, logger);
+        runTest(*pair.second, logger);
         auto const *label = logger.failed() ? "FAILED: " : "PASSED: ";
         failed = true;
-        std::cout << label << test->name() << std::endl;
+        std::cout << label << pair.first << std::endl;
         for (auto const &entry : logger.entries()) {
           std::cout << "    " << entry << std::endl;
         }
@@ -102,7 +65,7 @@ namespace unit {
     }
 
   private:
-    std::vector<Test *> tests{};
+    std::map<std::string, Test *> tests{};
   };
 
   static auto suite() -> Suite & {
@@ -112,8 +75,18 @@ namespace unit {
 
   auto runTests() -> bool { return suite().run(); };
 
-  Test::Test(std::string name) : tName{std::move(name)} { suite().add(*this); }
+  Test::Test(std::string const &name) { suite().add(name, this); }
 
-  auto Test::name() const -> std::string const & { return tName; }
+  void Logger::logfTo(std::ostream &o, char const *format) {
+    if (format == nullptr) {
+      return;
+    }
+    while (*format != 0) {
+      if (*format == '%' && *++format != '%') {
+        throw std::runtime_error{"invalid format: missing arguments"};
+      }
+      o << *format;
+    }
+  }
 } // namespace unit
 } // namespace dhe
