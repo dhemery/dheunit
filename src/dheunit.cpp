@@ -51,7 +51,7 @@ namespace unit {
   static auto runTest(std::string const &name, std::function<void(Tester &)> const &test) -> bool {
     auto runner = Runner{test};
     auto const result = runner.run();
-    auto const *label = result.failed ? "FAILED: " : "PASSED: ";
+    auto const *label = result.failed ? "\033[1;31mFAILED:\033[0m " : "\033[1;32mPASSED:\033[0m ";
     std::cout << label << name << std::endl;
     for (auto const &entry : result.logs) {
       std::cout << "    " << entry << std::endl;
