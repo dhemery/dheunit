@@ -60,7 +60,8 @@ namespace unit {
      * Writes the string representation of each arg to the test's log, separated by spaces.
      */
     template <typename... Ts> void log(Ts &&... args) {
-      auto entryStream = std::ostringstream{} << std::boolalpha;
+      auto entryStream = std::ostringstream{};
+      entryStream << std::boolalpha;
       writeTo(entryStream, args...);
       writeLog(entryStream.str());
     }
@@ -86,7 +87,8 @@ namespace unit {
      * arg.
      */
     template <typename... Ts> void logf(char const *format, Ts &&... args) {
-      auto entryStream = std::ostringstream{} << std::boolalpha;
+      auto entryStream = std::ostringstream{};
+      entryStream << std::boolalpha;
       writefTo(entryStream, format, args...);
       writeLog(entryStream.str());
     };
