@@ -32,14 +32,23 @@ namespace unit {
   struct LogEntryLogfSuite : public Suite {
     LogEntryLogfSuite() : Suite{"dhe::unit::LogEntry writef"} {}
     void addTests(TestMap &test) override {
-      test["null format"] = [](Tester &t) {
+      test["null format with no args"] = [](Tester &t) {
         auto entry = LogEntry{};
 
-        entry.writef(nullptr);
-        auto const str = entry.str();
+        try {
+          entry.writef(nullptr);
+          t.error("Succeeded, but want FormatError");
+        } catch (LogEntry::FormatError & /*expected*/) {
+        }
+      };
 
-        if (!str.empty()) {
-          t.errorf(R"(Got "{}", want "")", str);
+      test["null format with n args"] = [](Tester &t) {
+        auto entry = LogEntry{};
+
+        try {
+          entry.writef(nullptr, "arg1", "arg2", "arg3", "arg4");
+          t.error("Succeeded, but want FormatError");
+        } catch (LogEntry::FormatError & /*expected*/) {
         }
       };
 
@@ -121,8 +130,6 @@ namespace unit {
           t.errorf(R"(Got "{}", want "{}")", str, want);
         }
       };
-
-      // TODO: null format then args
     }
   };
   static LogEntryLogfSuite logfSuite __attribute__((unused)){};

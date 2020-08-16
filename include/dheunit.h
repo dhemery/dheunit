@@ -31,7 +31,7 @@ namespace unit {
 
     void writef(char const *f) {
       if (f == nullptr) {
-        return;
+        throw FormatError{"Log format error: null format"};
       }
       while (f[0] != 0) {
         if (f[0] == '{' && f[1] == '}') {
@@ -44,7 +44,7 @@ namespace unit {
 
     template <typename T, typename... Ts> void writef(char const *f, T &&t, Ts &&... ts) {
       if (f == nullptr) {
-        return;
+        throw FormatError{"Log format error: null format"};
       }
       while (f[0] != 0) {
         if (f[0] == '{' && f[1] == '}') {
