@@ -33,23 +33,28 @@ namespace unit {
       if (f == nullptr) {
         return;
       }
-      while (*f != 0) {
-        if (*f == '{' && *++f == '}') {
-          throw FormatError{"dhe::unit: too few arguments for log format"};
+      while (f[0] != 0) {
+        if (f[0] == '{' && f[1] == '}') {
+          throw FormatError{"Log format error: not enough arguments"};
         }
-        os << *f++;
+        os << f[0];
+        f++;
       }
     }
 
     template <typename T, typename... Ts> void writef(char const *f, T &&t, Ts &&... ts) {
-      while (f && *f) {
-        if (*f == '{' && *++f == '}') {
-          os << t;
-          return writef(++f, ts...);
-        }
-        os << *f++;
+      if (f == nullptr) {
+        return;
       }
-      throw FormatError{"dhe::unit: too many arguments for log format"};
+      while (f[0] != 0) {
+        if (f[0] == '{' && f[1] == '}') {
+          os << t;
+          return writef(f + 2, ts...);
+        }
+        os << f[0];
+        f++;
+      }
+      throw FormatError{"Log format error: too many arguments"};
     }
 
     auto str() const -> std::string { return os.str(); }
