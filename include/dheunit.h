@@ -4,15 +4,59 @@
 #include <map>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
 namespace dhe {
 namespace unit {
-
   struct Tester;
   using TestFunc = std::function<void(Tester &)>;
   using TestMap = std::map<std::string, std::function<void(Tester &)>>;
+
+  struct LogEntry {
+    struct FormatError : public std::runtime_error {
+      FormatError(char const *what) : std::runtime_error{what} {}
+    };
+
+    LogEntry() { os << std::boolalpha; }
+
+    template <typename T> void write(T &&t) { os << t; }
+
+    template <typename T, typename... Ts> void write(T &&t, Ts &&... ts) {
+      write(t);
+      os << ' ';
+      write(ts...);
+    }
+
+    void writef(char const *f) {
+      if (f == nullptr) {
+        return;
+      }
+      while (*f != 0) {
+        if (*f == '{' && *++f == '}') {
+          throw FormatError{"dhe::unit: too few arguments for log format"};
+        }
+        os << *f++;
+      }
+    }
+
+    template <typename T, typename... Ts> void writef(char const *f, T &&t, Ts &&... ts) {
+      while (f && *f) {
+        if (*f == '{' && *++f == '}') {
+          os << t;
+          return writef(++f, ts...);
+        }
+        os << *f++;
+      }
+      throw FormatError{"dhe::unit: too many arguments for log format"};
+    }
+
+    auto str() const -> std::string { return os.str(); }
+
+  private:
+    std::ostringstream os{};
+  };
 
   /**
    * A standalone test (not part of a suite).
@@ -26,7 +70,7 @@ namespace unit {
     /**
      * Called by the test runner to execute this test.
      */
-    virtual void run(Tester &logger) = 0;
+    virtual void run(Tester &tester) = 0;
   };
 
   /**
@@ -60,10 +104,9 @@ namespace unit {
      * Writes the string representation of each arg to the test's log, separated by spaces.
      */
     template <typename... Ts> void log(Ts &&... args) {
-      auto entryStream = std::ostringstream{};
-      entryStream << std::boolalpha;
-      writeTo(entryStream, args...);
-      writeLog(entryStream.str());
+      auto entry = LogEntry{};
+      entry.write(args...);
+      addLogEntry(entry.str());
     }
 
     /**
@@ -87,10 +130,9 @@ namespace unit {
      * arg.
      */
     template <typename... Ts> void logf(char const *format, Ts &&... args) {
-      auto entryStream = std::ostringstream{};
-      entryStream << std::boolalpha;
-      writefTo(entryStream, format, args...);
-      writeLog(entryStream.str());
+      auto entry = LogEntry{};
+      entry.writef(format, args...);
+      addLogEntry(entry.str());
     };
 
     /**
@@ -120,39 +162,7 @@ namespace unit {
     virtual void failNow() = 0;
 
   protected:
-    virtual void writeLog(std::string const &entry) = 0;
-
-  private:
-    template <typename T> static void writeTo(std::ostream &o, T &&t) { o << t; }
-
-    template <typename T, typename... Ts> static void writeTo(std::ostream &o, T &&t, Ts &&... ts) {
-      writeTo(o, t);
-      o << ' ';
-      writeTo(o, ts...);
-    }
-
-    static void writefTo(std::ostream &o, char const *f) {
-      if (f == nullptr) {
-        return;
-      }
-      while (*f != 0) {
-        if (*f == '{' && *++f == '}') {
-          throw std::runtime_error{"dhe::unit: too few arguments for log format"};
-        }
-        o << *f++;
-      }
-    }
-
-    template <typename T, typename... Ts> static void writefTo(std::ostream &o, char const *f, T &&t, Ts &&... ts) {
-      while (f && *f) {
-        if (*f == '{' && *++f == '}') {
-          o << t;
-          return writefTo(o, ++f, ts...);
-        }
-        o << *f++;
-      }
-      throw std::runtime_error{"dhe::unit: too many arguments for log format"};
-    }
+    virtual void addLogEntry(std::string entry) = 0;
   };
 } // namespace unit
 } // namespace dhe

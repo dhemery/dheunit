@@ -27,7 +27,7 @@ namespace unit {
       throw FailNowException{};
     }
 
-    void writeLog(std::string const &entry) override { result.logs.push_back(entry); }
+    void addLogEntry(std::string entry) override { result.logs.push_back(entry); }
 
     auto run() -> Result {
       try {
