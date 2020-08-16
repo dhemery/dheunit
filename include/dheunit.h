@@ -12,7 +12,10 @@ namespace dhe {
 namespace unit {
   struct Tester;
   using TestFunc = std::function<void(Tester &)>;
-  using TestMap = std::map<std::string, std::function<void(Tester &)>>;
+
+  struct TestList {
+    virtual auto operator[](std::string) -> TestFunc & = 0;
+  };
 
   struct LogEntry {
     struct FormatError : public std::runtime_error {
@@ -88,10 +91,10 @@ namespace unit {
     Suite(std::string const &name);
 
     /**
-     * Called by the test runner to obtain the tests that make up this suite.
-     * The suite will prepend its name to the name of each test.
+     * Called by the test runner to obtain the suite's tests.
+     * The suite prepends its name to the name of each test.
      */
-    virtual void addTests(TestMap &) = 0;
+    virtual void addTests(TestList &) = 0;
   };
 
   /**

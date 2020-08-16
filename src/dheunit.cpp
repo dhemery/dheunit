@@ -48,38 +48,48 @@ namespace unit {
     std::function<void(Tester &)> test;
   };
 
-  static auto runTest(std::string const &name, std::function<void(Tester &)> const &test) -> bool {
-    auto runner = Runner{test};
-    auto const result = runner.run();
-    auto const *label = result.failed ? "\033[1;31mFAILED:\033[0m " : "\033[1;32mPASSED:\033[0m ";
-    std::cout << label << name << std::endl;
-    for (auto const &entry : result.logs) {
-      std::cout << "    " << entry << std::endl;
-    }
-    return result.failed;
-  }
+  struct SuiteTestList : public TestList {
+    SuiteTestList(std::string suiteName) : suiteName{std::move(suiteName)} {}
 
-  static auto runSuite(std::string const &name, Suite *suite) -> bool {
-    auto failed{false};
-    std::map<std::string, std::function<void(Tester &)>> suiteTests{};
-    suite->addTests(suiteTests);
-    for (auto const &test : suiteTests) {
-      failed = runTest(name + ": " + test.first, test.second) || failed;
+    auto operator[](std::string testName) -> TestFunc & override {
+      tests.emplace_back(suiteName + ": " + testName, [](Tester &unused) {});
+      return tests.back().second;
     }
-    return failed;
-  }
+
+    auto allTests() const -> std::vector<std::pair<std::string, TestFunc>> const & { return tests; }
+
+  private:
+    std::string suiteName;
+    std::vector<std::pair<std::string, TestFunc>> tests{};
+  };
 
   class TestRun {
   public:
-    auto run() const -> bool {
-      auto failed{false};
-      for (auto const &suite : suites) {
-        failed = runSuite(suite.first, suite.second) || failed;
-      }
-      for (auto const &test : tests) {
-        failed = runTest(test.first, test.second) || failed;
-      }
+    auto run() -> bool {
+      std::for_each(suites.cbegin(), suites.cend(),
+                    [this](std::pair<std::string, Suite *> const &pair) { runSuite(pair.first, pair.second); });
+      std::for_each(tests.cbegin(), tests.cend(),
+                    [this](std::pair<std::string, TestFunc> const &pair) { runTest(pair.first, pair.second); });
       return failed;
+    }
+
+    void runTest(std::string const &name, TestFunc const &test) {
+      auto runner = Runner{test};
+      auto const result = runner.run();
+      auto const *label = result.failed ? "\033[1;31mFAILED:\033[0m " : "\033[1;32mPASSED:\033[0m ";
+      std::cout << label << name << std::endl;
+      for (auto const &entry : result.logs) {
+        std::cout << "    " << entry << std::endl;
+      }
+      failed = failed || result.failed;
+    }
+
+    void runSuite(std::string const &name, Suite *suite) {
+      SuiteTestList testList{name};
+      suite->addTests(testList);
+      auto suiteTests = testList.allTests();
+      std::for_each(suiteTests.cbegin(), suiteTests.cend(),
+                    [this](std::pair<std::string, TestFunc> pair) { runTest(pair.first, pair.second); });
     }
 
     void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }
@@ -89,8 +99,9 @@ namespace unit {
     }
 
   private:
+    bool failed{false};
     std::map<std::string, Suite *> suites{};
-    std::map<std::string, std::function<void(Tester &)>> tests{};
+    std::map<std::string, TestFunc> tests{};
   };
 
   static auto testRun() -> TestRun & {

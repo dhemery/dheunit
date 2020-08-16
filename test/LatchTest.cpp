@@ -6,7 +6,7 @@ using dhe::Latch;
 using dhe::unit::Suite;
 using dhe::unit::Tester;
 using dhe::unit::TestFunc;
-using dhe::unit::TestMap;
+using dhe::unit::TestList;
 
 namespace dhe {
 namespace components {
@@ -22,7 +22,7 @@ namespace components {
   public:
     LatchSuite() : Suite{"dhe::Latch"} {}
 
-    void addTests(TestMap &tests) override {
+    void addTests(TestList &tests) override {
       tests["is low by default"] = checkEquality(Latch{}, low, true);
 
       tests["high == high"] = checkEquality(high, high, true);
