@@ -1,8 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <sstream>
-#include <string>
 
 namespace dhe {
 class Latch {
@@ -21,13 +19,13 @@ public:
   auto isFall() const -> bool { return isEdge() && isLow(); };
   auto isRise() const -> bool { return isEdge() && isHigh(); };
 
-  friend auto operator<<(std::ostream &o, Latch const &l) -> std::ostream & {
-    return o << "Latch{" << l.isHigh() << ',' << l.isEdge() << '}';
-  }
-
-  auto str() const -> std::string { return (std::ostringstream{} << std::boolalpha << *this).str(); }
   auto operator==(Latch const &rhs) const -> bool { return state == rhs.state && edge == rhs.edge; }
   auto operator!=(Latch const &rhs) const -> bool { return !(rhs == *this); }
+
+  friend auto operator<<(std::ostream &os, Latch const &latch) -> std::ostream & {
+    os << "Latch{" << latch.state << ',' << latch.edge << '}';
+    return os;
+  }
 
 private:
   bool state{};
