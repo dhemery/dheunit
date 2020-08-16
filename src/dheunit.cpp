@@ -1,5 +1,6 @@
 #include "dheunit.h"
 
+#include <algorithm>
 #include <exception>
 #include <functional>
 #include <iostream>
@@ -48,21 +49,6 @@ namespace unit {
     std::function<void(Tester &)> test;
   };
 
-  struct SuiteTestList : public TestList {
-    SuiteTestList(std::string suiteName) : suiteName{std::move(suiteName)} {}
-
-    auto operator[](std::string testName) -> TestFunc & override {
-      tests.emplace_back(suiteName + ": " + testName, [](Tester &unused) {});
-      return tests.back().second;
-    }
-
-    auto allTests() const -> std::vector<std::pair<std::string, TestFunc>> const & { return tests; }
-
-  private:
-    std::string suiteName;
-    std::vector<std::pair<std::string, TestFunc>> tests{};
-  };
-
   class TestRun {
   public:
     auto run() -> bool {
@@ -84,12 +70,13 @@ namespace unit {
       failed = failed || result.failed;
     }
 
-    void runSuite(std::string const &name, Suite *suite) {
-      SuiteTestList testList{name};
-      suite->addTests(testList);
-      auto suiteTests = testList.allTests();
+    void runSuite(std::string const &suiteName, Suite *suite) {
+      std::vector<std::pair<std::string, TestFunc>> suiteTests{};
+      suite->addTests([suiteName, &suiteTests](std::string const &testName, TestFunc const &test) {
+        suiteTests.emplace_back(suiteName + ": " + testName, test);
+      });
       std::for_each(suiteTests.cbegin(), suiteTests.cend(),
-                    [this](std::pair<std::string, TestFunc> pair) { runTest(pair.first, pair.second); });
+                    [this](std::pair<std::string, TestFunc> const &pair) { runTest(pair.first, pair.second); });
     }
 
     void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }

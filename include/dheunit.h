@@ -10,13 +10,10 @@
 
 namespace dhe {
 namespace unit {
-  struct Tester;
-  using TestFunc = std::function<void(Tester &)>;
 
-  struct TestList {
-    virtual auto operator[](std::string) -> TestFunc & = 0;
-  };
-
+  /**
+   * Accumulates a log entry string from one or more write operations.
+   */
   struct LogEntry {
     struct FormatError : public std::runtime_error {
       FormatError(char const *what) : std::runtime_error{what} {}
@@ -65,43 +62,6 @@ namespace unit {
   private:
     std::ostringstream os{};
   };
-
-  /**
-   * A standalone test (not part of a suite).
-   */
-  struct Test {
-    /**
-     * Constructs a test and registers it by name.
-     */
-    Test(std::string const &name);
-
-    /**
-     * Called by the test runner to execute this test.
-     */
-    virtual void run(Tester &tester) = 0;
-  };
-
-  /**
-   * A suite of tests.
-   */
-  struct Suite {
-    /**
-     * Constructs a test suite and registers it by name.
-     */
-    Suite(std::string const &name);
-
-    /**
-     * Called by the test runner to obtain the suite's tests.
-     * The suite prepends its name to the name of each test.
-     */
-    virtual void addTests(TestList &) = 0;
-  };
-
-  /**
-   * Runs all registered suites and standalone tests.
-   * @return true iff at least one test failed
-   */
-  extern auto runTests() -> bool;
 
   /**
    * Each test function receives a tester to report test failures and other information.
@@ -172,5 +132,53 @@ namespace unit {
   protected:
     virtual void addLogEntry(std::string entry) = 0;
   };
+
+  /**
+   * A standalone test (not part of a suite).
+   */
+  struct Test {
+    /**
+     * Constructs a test and registers it by name.
+     */
+    Test(std::string const &name);
+
+    /**
+     * Called by the test runner to execute this test.
+     */
+    virtual void run(Tester &tester) = 0;
+  };
+
+  /**
+   * The type of function that can be run as a test as part of a suite.
+   */
+  using TestFunc = std::function<void(Tester &)>;
+
+  /**
+   * The type of function that adds a TestFunc to a suite.
+   */
+  using AddTestFunc = std::function<void(std::string const &, TestFunc const &)>;
+
+  /**
+   * A suite of tests.
+   */
+  struct Suite {
+    /**
+     * Constructs a test suite and registers it by name.
+     */
+    Suite(std::string const &name);
+
+    /**
+     * Called by the test runner to obtain the suite's tests.
+     * Your implementation can call the given function any number of times to add tests to the suite.
+     * The test runner prepends the suite's name to the name of each test.
+     */
+    virtual void addTests(AddTestFunc) = 0;
+  };
+
+  /**
+   * Runs all registered suites and standalone tests.
+   * @return true iff at least one test failed
+   */
+  extern auto runTests() -> bool;
 } // namespace unit
 } // namespace dhe

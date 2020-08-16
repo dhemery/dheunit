@@ -4,17 +4,17 @@ namespace dhe {
 namespace unit {
   struct LogEntryLogSuite : public Suite {
     LogEntryLogSuite() : Suite{"dhe::unit::LogEntry write"} {}
-    void addTests(TestList &test) override {
-      test["one arg"] = [](Tester &t) {
+    void addTests(AddTestFunc addTest) override {
+      addTest("one arg", [](Tester &t) {
         auto entry = LogEntry{};
         entry.write(true);
         auto const str = entry.str();
         if (str != "true") {
           t.errorf(R"(Got "{}", want "true")", str);
         }
-      };
+      });
 
-      test["n args"] = [](Tester &t) {
+      addTest("n args", [](Tester &t) {
         auto entry = LogEntry{};
         entry.write(true, 2, "fred");
 
@@ -24,15 +24,15 @@ namespace unit {
         if (str != want) {
           t.errorf(R"(Got "{}", want "{}")", str, want);
         }
-      };
+      });
     }
   };
   static LogEntryLogSuite logSuite __attribute__((unused)){};
 
   struct LogEntryLogfSuite : public Suite {
     LogEntryLogfSuite() : Suite{"dhe::unit::LogEntry writef"} {}
-    void addTests(TestList &test) override {
-      test["null format with no args"] = [](Tester &t) {
+    void addTests(AddTestFunc addTest) override {
+      addTest("null format with no args", [](Tester &t) {
         auto entry = LogEntry{};
 
         try {
@@ -40,9 +40,9 @@ namespace unit {
           t.error("Succeeded, but want FormatError");
         } catch (LogEntry::FormatError & /*expected*/) {
         }
-      };
+      });
 
-      test["null format with n args"] = [](Tester &t) {
+      addTest("null format with n args", [](Tester &t) {
         auto entry = LogEntry{};
 
         try {
@@ -50,9 +50,9 @@ namespace unit {
           t.error("Succeeded, but want FormatError");
         } catch (LogEntry::FormatError & /*expected*/) {
         }
-      };
+      });
 
-      test["empty format"] = [](Tester &t) {
+      addTest("empty format", [](Tester &t) {
         auto entry = LogEntry{};
 
         entry.writef("");
@@ -61,9 +61,9 @@ namespace unit {
         if (!str.empty()) {
           t.errorf(R"(Got "{}", want "")", str);
         }
-      };
+      });
 
-      test["no anchors"] = [](Tester &t) {
+      addTest("no anchors", [](Tester &t) {
         auto entry = LogEntry{};
 
         auto constexpr format = "a format with no anchors";
@@ -73,9 +73,9 @@ namespace unit {
         if (str != format) {
           t.errorf(R"(Got "{}", want "{}")", str, format);
         }
-      };
+      });
 
-      test["1 anchor 1 arg"] = [](Tester &t) {
+      addTest("1 anchor 1 arg", [](Tester &t) {
         auto entry = LogEntry{};
 
         entry.writef("prefix {} suffix", "arg1");
@@ -85,9 +85,9 @@ namespace unit {
         if (str != want) {
           t.errorf(R"(Got "{}", want "{}")", str, want);
         }
-      };
+      });
 
-      test["n anchors n args"] = [](Tester &t) {
+      addTest("n anchors n args", [](Tester &t) {
         auto entry = LogEntry{};
 
         entry.writef("{},{},{}", "arg1", "arg2", "arg3");
@@ -97,9 +97,9 @@ namespace unit {
         if (str != want) {
           t.errorf(R"(Got "{}", want "{}")", str, want);
         }
-      };
+      });
 
-      test["more anchors than args"] = [](Tester &t) {
+      addTest("more anchors than args", [](Tester &t) {
         auto entry = LogEntry{};
 
         try {
@@ -107,9 +107,9 @@ namespace unit {
           t.error("Succeeded, but want FormatError");
         } catch (LogEntry::FormatError & /*expected*/) {
         }
-      };
+      });
 
-      test["more args than anchors"] = [](Tester &t) {
+      addTest("more args than anchors", [](Tester &t) {
         auto entry = LogEntry{};
 
         try {
@@ -117,9 +117,9 @@ namespace unit {
           t.error("Succeeded, but want FormatError");
         } catch (LogEntry::FormatError & /*expected*/) {
         }
-      };
+      });
 
-      test["opening brace precedes anchor"] = [](Tester &t) {
+      addTest("opening brace precedes anchor", [](Tester &t) {
         auto entry = LogEntry{};
 
         entry.writef("{{}foo", "arg1");
@@ -129,7 +129,7 @@ namespace unit {
         if (str != want) {
           t.errorf(R"(Got "{}", want "{}")", str, want);
         }
-      };
+      });
     }
   };
   static LogEntryLogfSuite logfSuite __attribute__((unused)){};
