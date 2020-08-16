@@ -1,9 +1,25 @@
-CXXFLAGS += -Iinclude -std=c++11 -stdlib=libc++
-CXXFLAGS += -MMD -MP
+# Generate dependency files with the object files
+FLAGS += -MMD -MP
+
+# Optimization
+FLAGS += -O3 -march=nocona -funsafe-math-optimizations
+
+# Warnings
+FLAGS += -Wall -Wextra -Wno-unused-parameter
+
+# C++ standard
+CXXFLAGS += -std=c++11
+
+include makefiles/arch.mk
+
+# Apply architecture-dependent flags
+CXXFLAGS += $(FLAGS)
+
+CXXFLAGS += -Iinclude
 
 SOURCES = $(shell find src -name "*.cpp")
 
-OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
+OBJECTS := $(patsubst %.cpp, build/%.cpp.o, $(SOURCES))
 
 TARGET = libdheunit.a
 $(TARGET): $(OBJECTS)
@@ -76,7 +92,8 @@ tidy: $(COMPILATION_DB)
 -include $(OBJECTS:.o=.d)
 -include $(TEST_OBJECTS:.o=.d)
 
-build/%.o: %
+
+build/%.cpp.o: %.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
