@@ -61,8 +61,10 @@ namespace unit {
 
   static auto runSuite(std::string const &name, Suite *suite) -> bool {
     auto failed{false};
-    for (auto const &test : suite->tests()) {
-      failed = runTest(name + '/' + test.first, test.second) || failed;
+    std::map<std::string, std::function<void(Tester &)>> suiteTests{};
+    suite->addTests(suiteTests);
+    for (auto const &test : suiteTests) {
+      failed = runTest(name + ": " + test.first, test.second) || failed;
     }
     return failed;
   }

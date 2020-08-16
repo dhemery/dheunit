@@ -11,6 +11,8 @@ namespace dhe {
 namespace unit {
 
   struct Tester;
+  using TestFunc = std::function<void(Tester &)>;
+  using TestMap = std::map<std::string, std::function<void(Tester &)>>;
 
   /**
    * A standalone test (not part of a suite).
@@ -38,8 +40,9 @@ namespace unit {
 
     /**
      * Called by the test runner to obtain the tests that make up this suite.
+     * The suite will prepend its name to the name of each test.
      */
-    virtual auto tests() -> std::map<std::string, std::function<void(Tester &)>> = 0;
+    virtual void addTests(TestMap &) = 0;
   };
 
   /**
