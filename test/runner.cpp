@@ -1,6 +1,8 @@
 #include "dheunit.h"
 
+#include <algorithm>
 #include <iostream>
+#include <string>
 
 auto main() -> int {
   static auto constexpr *redText = "\033[1;31m";
