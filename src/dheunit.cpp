@@ -4,6 +4,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -50,8 +51,7 @@ namespace unit {
   };
 
   /**
-   * RunTest runs each test passed to operator(), describes each result to std::cout, and accumulates the number of
-   * failures.
+   * RunTest runs each test passed to operator(), describes each result to std::cout, and summarizes the results.
    */
   struct RunTest {
     void operator()(std::pair<std::string, TestFunc> const &nameAndTest) {
@@ -67,18 +67,18 @@ namespace unit {
         std::cout << "    " << entry << std::endl;
       }
 
-      f += result.failed ? 1 : 0;
+      s.add(name, result.failed);
     }
 
-    auto failures() const -> size_t { return f; }
+    auto summary() const -> Summary { return s; }
 
   private:
-    size_t f{};
+    Summary s{};
   };
 
   /**
-   * RunSuite runs the tests in each suite passed to operator(), describes each result to std::cout, and accumulates the
-   * number of failures.
+   * RunSuite runs the tests in each suite passed to operator(), describes each result to std::cout, and summarizes the
+   * results.
    */
   struct RunSuite {
     void operator()(std::pair<std::string, Suite *> const &nameAndSuite) {
@@ -91,20 +91,24 @@ namespace unit {
       });
 
       auto testResults = std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{});
-      f += testResults.failures();
+      s.add(testResults.summary());
     }
 
-    auto failures() const -> size_t { return f; }
+    auto summary() const -> Summary { return s; }
 
   private:
-    size_t f{};
+    Summary s{};
   };
 
   struct TestRun {
-    auto run() -> size_t {
+    auto run() -> Summary {
       RunSuite suiteResults = std::for_each(suites.cbegin(), suites.cend(), RunSuite{});
+      auto summary = suiteResults.summary();
+
       RunTest testResults = std::for_each(tests.cbegin(), tests.cend(), RunTest{});
-      return suiteResults.failures() + testResults.failures();
+      summary.add(testResults.summary());
+
+      return summary;
     }
 
     void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }
@@ -123,7 +127,7 @@ namespace unit {
     return theTestRun;
   }
 
-  auto runTests() -> size_t { return testRun().run(); }
+  auto runTests() -> Summary { return testRun().run(); }
 
   Suite::Suite(std::string const &name) { testRun().registerSuite(name, this); }
 

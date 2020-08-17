@@ -3,6 +3,7 @@
 #include <functional>
 #include <map>
 #include <ostream>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -176,9 +177,35 @@ namespace unit {
   };
 
   /**
-   * Runs all registered suites and standalone tests.
-   * @return the number of tests that reported failure
+   * Summary summarizes a test run.
    */
-  extern auto runTests() -> size_t;
+  struct Summary {
+    auto testCount() const -> size_t { return ntests; }
+    auto failureCount() const -> size_t { return failedTests.size(); }
+    auto failures() const -> std::set<std::string> { return failedTests; }
+
+    void add(const std::string &name, bool failed) {
+      ntests++;
+      if (failed) {
+        failedTests.insert(name);
+      }
+    }
+
+    void add(Summary const &other) {
+      ntests += other.testCount();
+      auto const newFailures = other.failures();
+      std::copy(newFailures.cbegin(), newFailures.cend(), std::inserter(failedTests, failedTests.end()));
+    }
+
+  private:
+    size_t ntests{};
+    std::set<std::string> failedTests{};
+  };
+
+  /**
+   * Runs all registered suites and standalone tests.
+   * @return a summary of test results
+   */
+  extern auto runTests() -> Summary;
 } // namespace unit
 } // namespace dhe
