@@ -2,9 +2,6 @@
 
 #include <algorithm>
 #include <exception>
-#include <functional>
-#include <iostream>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -12,24 +9,22 @@
 namespace dhe {
 namespace unit {
 
-  struct Result {
-    bool failed{false};
-    std::vector<std::string> logs{};
-  };
-
   struct Runner : public Tester {
     class FailNowException : public std::exception {};
 
-    Runner(std::function<void(Tester &)> test) : test{std::move(test)} {}
+    Runner(TestID id, TestFunc test, LogFunc log) : id{std::move(id)}, test{std::move(test)}, log{std::move(log)} {}
 
-    void fail() override { result.failed = true; }
+    void fail() override { failed = true; }
 
     void failNow() override {
       fail();
       throw FailNowException{};
     }
 
-    void addLogEntry(std::string entry) override { result.logs.push_back(entry); }
+    void addLogEntry(std::string entry) override {
+      log(id, entry);
+      logEntries.push_back(entry);
+    }
 
     auto run() -> Result {
       try {
@@ -42,38 +37,41 @@ namespace unit {
       } catch (...) {
         error("Unrecognized exception");
       }
-      return result;
+      return Result{id, !failed, logEntries};
     }
 
   private:
-    Result result{};
-    std::function<void(Tester &)> test;
+    TestID id;
+    TestFunc test;
+    LogFunc log;
+    bool failed{false};
+    std::vector<std::string> logEntries{};
   };
 
   /**
    * RunTest runs each test passed to operator(), describes each result to std::cout, and summarizes the results.
    */
   struct RunTest {
-    void operator()(std::pair<std::string, TestFunc> const &nameAndTest) {
-      auto const name{nameAndTest.first};
-      auto test{nameAndTest.second};
+    RunTest(RunIDFunc runID, LogFunc log, ReportFunc report) :
+        runID{std::move(runID)}, log{std::move(log)}, report{std::move(report)} {}
 
-      auto runner = Runner{test};
-      auto const result = runner.run();
-
-      auto const *label = result.failed ? "\033[1;31mFAILED:\033[0m " : "\033[1;32mPASSED:\033[0m ";
-      std::cout << label << name << std::endl;
-      for (auto const &entry : result.logs) {
-        std::cout << "    " << entry << std::endl;
+    void operator()(std::pair<TestID, TestFunc> const &nameAndTest) {
+      auto const id{nameAndTest.first};
+      if (!runID(id)) {
+        return;
       }
 
-      s.add(name, result.failed);
+      auto test{nameAndTest.second};
+      auto runner = Runner{id, test, log};
+      auto const result = runner.run();
+
+      report(result);
     }
 
-    auto summary() const -> Summary { return s; }
-
   private:
-    Summary s{};
+    RunIDFunc const runID;
+    LogFunc const log;
+    ReportFunc const report;
   };
 
   /**
@@ -81,45 +79,50 @@ namespace unit {
    * results.
    */
   struct RunSuite {
-    void operator()(std::pair<std::string, Suite *> const &nameAndSuite) {
-      auto const suiteName{nameAndSuite.first};
-      auto *suite{nameAndSuite.second};
+    RunSuite(RunIDFunc runID, LogFunc log, ReportFunc report) :
+        runID{std::move(runID)}, log{std::move(log)}, report{std::move(report)} {}
 
-      std::vector<std::pair<std::string, TestFunc>> suiteTests{};
-      suite->addTests([&suiteName, &suiteTests](std::string const &testName, TestFunc const &test) {
-        suiteTests.emplace_back(suiteName + ": " + testName, test);
+    void operator()(std::pair<TestID, Suite *> const &idAndSuite) {
+      auto const suiteID{idAndSuite.first};
+      if (!runID(suiteID)) {
+        return;
+      }
+      auto *suite{idAndSuite.second};
+
+      std::vector<std::pair<TestID, TestFunc>> suiteTests{};
+      suite->addTests([suiteID, &suiteTests](std::string const &testName, TestFunc const &test) {
+        const TestID testID = TestID{suiteID.suiteName(), testName};
+        suiteTests.emplace_back(testID, test);
       });
 
-      auto testResults = std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{});
-      s.add(testResults.summary());
+      std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{runID, log, report});
     }
 
-    auto summary() const -> Summary { return s; }
-
   private:
-    Summary s{};
+    RunIDFunc const runID;
+    LogFunc const log;
+    ReportFunc const report;
   };
 
   struct TestRun {
-    auto run() -> Summary {
-      RunSuite suiteResults = std::for_each(suites.cbegin(), suites.cend(), RunSuite{});
-      auto summary = suiteResults.summary();
-
-      RunTest testResults = std::for_each(tests.cbegin(), tests.cend(), RunTest{});
-      summary.add(testResults.summary());
-
-      return summary;
+    void run(RunIDFunc const &filter, LogFunc const &log, ReportFunc const &report) {
+      std::for_each(suites.cbegin(), suites.cend(), RunSuite{filter, log, report});
+      std::for_each(tests.cbegin(), tests.cend(), RunTest{filter, log, report});
     }
 
-    void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }
+    void registerSuite(std::string const &suiteName, Suite *suite) {
+      const TestID suiteID = TestID{suiteName, ""};
+      suites[suiteID] = suite;
+    }
 
-    void registerTest(std::string const &name, Test *test) {
-      tests[name] = [test](Tester &t) { test->run(t); };
+    void registerTest(std::string const &testName, Test *test) {
+      auto const testID = TestID{"", testName};
+      tests[testID] = [test](Tester &t) { test->run(t); };
     }
 
   private:
-    std::map<std::string, Suite *> suites{};
-    std::map<std::string, TestFunc> tests{};
+    std::map<TestID, Suite *> suites{};
+    std::map<TestID, TestFunc> tests{};
   };
 
   static auto testRun() -> TestRun & {
@@ -127,7 +130,9 @@ namespace unit {
     return theTestRun;
   }
 
-  auto runTests() -> Summary { return testRun().run(); }
+  void runTests(RunIDFunc const &filter, LogFunc const &log, ReportFunc const &report) {
+    return testRun().run(filter, log, report);
+  }
 
   Suite::Suite(std::string const &name) { testRun().registerSuite(name, this); }
 

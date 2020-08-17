@@ -4,27 +4,37 @@
 #include <iostream>
 #include <string>
 
+using dhe::unit::LogFunc;
+using dhe::unit::Result;
+using dhe::unit::ReportFunc;
+using dhe::unit::RunIDFunc;
+using dhe::unit::runTests;
+using dhe::unit::TestID;
+
+static auto constexpr *redText = "\033[1;31m";
+static auto constexpr *normalText = "\033[1;30m";
+
 auto main() -> int {
-  static auto constexpr *redText = "\033[1;31m";
-  static auto constexpr *greenText = "\033[1;32m";
-  static auto constexpr *normalText = "\033[1;30m";
+  auto nfailures{0};
+  auto ntests{0};
 
-  auto const summary = dhe::unit::runTests();
+  auto const runAll = [](TestID const & id) -> bool { return true; };
+  auto const logNothing = [](TestID const &id, std::string const &entry) {};
 
-  auto const failureCount = summary.failureCount();
-  auto const someTestsFailed = failureCount > 0;
+  ReportFunc printResult = [&nfailures, &ntests](Result const &result) {
+    ntests++;
+    if (result.passed()) {
+      return;
+    }
 
-  auto const *summaryColor = someTestsFailed ? redText : greenText;
+    nfailures++;
+    std::cout << redText << "FAILED: " << normalText << result.suiteName() << ": " << result.testName() << std::endl;
+    for (auto const &entry : result.log()) {
+      std::cout << "    " << entry << std::endl;
+    }
+  };
 
-  std::cout << summaryColor << failureCount << " / " << summary.testCount() << " failed";
+  runTests(runAll, logNothing, printResult);
 
-  if (someTestsFailed) {
-    auto const failures = summary.failures();
-    std::for_each(failures.cbegin(), failures.cend(), [](std::string const &failure) {
-      std::cout << std::endl << "    " << failure;
-    });
-  }
-
-  std::cout << normalText << std::endl;
-  exit(someTestsFailed ? 1 : 0);
+  return nfailures > 0 ? 1 : 0;
 }

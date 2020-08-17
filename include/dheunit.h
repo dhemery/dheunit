@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace dhe {
 namespace unit {
@@ -176,36 +177,51 @@ namespace unit {
     virtual void addTests(AddTestFunc) = 0;
   };
 
-  /**
-   * Summary summarizes a test run.
-   */
-  struct Summary {
-    auto testCount() const -> size_t { return ntests; }
-    auto failureCount() const -> size_t { return failedTests.size(); }
-    auto failures() const -> std::set<std::string> { return failedTests; }
+  struct TestID {
+    TestID(std::string suiteName, std::string testName) : sName{std::move(suiteName)}, tName{std::move(testName)} {}
 
-    void add(const std::string &name, bool failed) {
-      ntests++;
-      if (failed) {
-        failedTests.insert(name);
+    auto suiteName() const -> std::string { return sName; }
+
+    auto testName() const -> std::string { return tName; }
+
+    auto operator<(TestID const &rhs) const -> bool {
+      if (sName < rhs.sName) {
+        return true;
       }
-    }
-
-    void add(Summary const &other) {
-      ntests += other.testCount();
-      auto const newFailures = other.failures();
-      std::copy(newFailures.cbegin(), newFailures.cend(), std::inserter(failedTests, failedTests.end()));
+      if (rhs.sName < sName) {
+        return false;
+      }
+      return tName < rhs.tName;
     }
 
   private:
-    size_t ntests{};
-    std::set<std::string> failedTests{};
+    std::string const sName;
+    std::string const tName;
   };
+
+  struct Result {
+    Result(TestID id, bool passed, std::vector<std::string> log) :
+        testID{std::move(id)}, testPassed{passed}, testLog{std::move(log)} {}
+
+    auto id() const -> TestID { return testID; }
+    auto suiteName() const -> std::string { return testID.suiteName(); }
+    auto testName() const -> std::string { return testID.testName(); }
+    auto passed() const -> bool { return testPassed; }
+    auto log() const -> std::vector<std::string> { return testLog; }
+
+  private:
+    TestID const testID;
+    bool const testPassed;
+    std::vector<std::string> testLog;
+  };
+
+  using RunIDFunc = std::function<bool(TestID const &)>;
+  using LogFunc = std::function<void(TestID const &, std::string const &)>;
+  using ReportFunc = std::function<void(Result const &)>;
 
   /**
    * Runs all registered suites and standalone tests.
-   * @return a summary of test results
    */
-  extern auto runTests() -> Summary;
+  extern void runTests(RunIDFunc const &runID, LogFunc const &log, ReportFunc const &report);
 } // namespace unit
 } // namespace dhe
