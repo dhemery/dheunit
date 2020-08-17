@@ -177,8 +177,8 @@ namespace unit {
 
   /**
    * Runs all registered suites and standalone tests.
-   * @return true iff at least one test failed
+   * @return the number of tests that reported failure
    */
-  extern auto runTests() -> bool;
+  extern auto runTests() -> size_t;
 } // namespace unit
 } // namespace dhe

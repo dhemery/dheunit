@@ -49,34 +49,62 @@ namespace unit {
     std::function<void(Tester &)> test;
   };
 
-  class TestRun {
-  public:
-    auto run() -> bool {
-      std::for_each(suites.cbegin(), suites.cend(),
-                    [this](std::pair<std::string, Suite *> const &pair) { runSuite(pair.first, pair.second); });
-      std::for_each(tests.cbegin(), tests.cend(),
-                    [this](std::pair<std::string, TestFunc> const &pair) { runTest(pair.first, pair.second); });
-      return failed;
-    }
+  /**
+   * RunTest runs each test passed to operator(), describes each result to std::cout, and accumulates the number of
+   * failures.
+   */
+  struct RunTest {
+    void operator()(std::pair<std::string, TestFunc> const &nameAndTest) {
+      auto const name{nameAndTest.first};
+      auto test{nameAndTest.second};
 
-    void runTest(std::string const &name, TestFunc const &test) {
       auto runner = Runner{test};
       auto const result = runner.run();
+
       auto const *label = result.failed ? "\033[1;31mFAILED:\033[0m " : "\033[1;32mPASSED:\033[0m ";
       std::cout << label << name << std::endl;
       for (auto const &entry : result.logs) {
         std::cout << "    " << entry << std::endl;
       }
-      failed = failed || result.failed;
+
+      f += result.failed ? 1 : 0;
     }
 
-    void runSuite(std::string const &suiteName, Suite *suite) {
+    auto failures() const -> size_t { return f; }
+
+  private:
+    size_t f{};
+  };
+
+  /**
+   * RunSuite runs the tests in each suite passed to operator(), describes each result to std::cout, and accumulates the
+   * number of failures.
+   */
+  struct RunSuite {
+    void operator()(std::pair<std::string, Suite *> const &nameAndSuite) {
+      auto const suiteName{nameAndSuite.first};
+      auto *suite{nameAndSuite.second};
+
       std::vector<std::pair<std::string, TestFunc>> suiteTests{};
-      suite->addTests([suiteName, &suiteTests](std::string const &testName, TestFunc const &test) {
+      suite->addTests([&suiteName, &suiteTests](std::string const &testName, TestFunc const &test) {
         suiteTests.emplace_back(suiteName + ": " + testName, test);
       });
-      std::for_each(suiteTests.cbegin(), suiteTests.cend(),
-                    [this](std::pair<std::string, TestFunc> const &pair) { runTest(pair.first, pair.second); });
+
+      auto testResults = std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{});
+      f += testResults.failures();
+    }
+
+    auto failures() const -> size_t { return f; }
+
+  private:
+    size_t f{};
+  };
+
+  struct TestRun {
+    auto run() -> size_t {
+      RunSuite suiteResults = std::for_each(suites.cbegin(), suites.cend(), RunSuite{});
+      RunTest testResults = std::for_each(tests.cbegin(), tests.cend(), RunTest{});
+      return suiteResults.failures() + testResults.failures();
     }
 
     void registerSuite(std::string const &name, Suite *suite) { suites[name] = suite; }
@@ -86,7 +114,6 @@ namespace unit {
     }
 
   private:
-    bool failed{false};
     std::map<std::string, Suite *> suites{};
     std::map<std::string, TestFunc> tests{};
   };
@@ -96,7 +123,7 @@ namespace unit {
     return theTestRun;
   }
 
-  auto runTests() -> bool { return testRun().run(); }
+  auto runTests() -> size_t { return testRun().run(); }
 
   Suite::Suite(std::string const &name) { testRun().registerSuite(name, this); }
 
