@@ -1,4 +1,4 @@
-#include "dheunit.h"
+#include "dheunit/test.h"
 
 namespace dhe {
 namespace unit {

@@ -1,58 +1,73 @@
+CXXFLAGS += -I.
+
 # Generate dependency files with the object files
-FLAGS += -MMD -MP
+CXXFLAGS += -MMD -MP
 
 # Optimization
-FLAGS += -O3 -march=nocona -funsafe-math-optimizations
+CXXFLAGS += -O3 -march=nocona -funsafe-math-optimizations
 
 # Warnings
-FLAGS += -Wall -Wextra -Wno-unused-parameter
+CXXFLAGS += -Wall -Wextra -Wno-unused-parameter
 
 # C++ standard
 CXXFLAGS += -std=c++11
 
-include makefiles/arch.mk
+MACHINE = $(shell $(CC) -dumpmachine)
+ifneq (, $(findstring apple, $(MACHINE)))
+	ARCH_MAC := 1
+	ARCH := mac
+else ifneq (, $(findstring mingw, $(MACHINE)))
+	ARCH_WIN := 1
+	ARCH := win
+	ifneq ( ,$(findstring x86_64, $(MACHINE)))
+		ARCH_WIN_64 := 1
+		BITS := 64
+	else ifneq (, $(findstring i686, $(MACHINE)))
+		ARCH_WIN_32 := 1
+		BITS := 32
+	endif
+else ifneq (, $(findstring linux, $(MACHINE)))
+	ARCH_LIN := 1
+	ARCH := lin
+else
+	$(error Could not determine architecture of $(MACHINE).)
+endif
 
-# Apply architecture-dependent flags
-CXXFLAGS += $(FLAGS)
-
-CXXFLAGS += -Iinclude
-
-SOURCES = $(shell find src -name "*.cpp")
+# Architecture-dependent flags
+ifdef ARCH_LIN
+	CXXFLAGS += -Wsuggest-override
+endif
+ifdef ARCH_MAC
+	CXXFLAGS += -stdlib=libc++
+	LDFLAGS += -stdlib=libc++
+	MAC_SDK_FLAGS = -mmacosx-version-min=10.7
+	CXXFLAGS += $(MAC_SDK_FLAGS)
+	LDFLAGS += $(MAC_SDK_FLAGS)
+endif
+ifdef ARCH_WIN
+	CXXFLAGS += -D_USE_MATH_DEFINES
+	CXXFLAGS += -Wsuggest-override
+endif
 
 OBJECTS := $(patsubst %.cpp, build/%.cpp.o, $(SOURCES))
 
-TARGET = libdheunit.a
-$(TARGET): $(OBJECTS)
-	ar rcu $@ $^
-	ranlib $@
+SOURCES = $(shell find test -name "*.cpp")
 
-.PHONY: all
-all: testrunner
+OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 
+RUNNER = build/runtests
 
-
-
-########################################################################
-#
-# Build and run tests
-#
-########################################################################
-
-TEST_SOURCES = $(shell find test -name "*.cpp")
-
-TEST_OBJECTS := $(patsubst %, build/%.o, $(TEST_SOURCES))
-
-TEST_RUNNER = build/runtests
-
-$(TEST_RUNNER): $(TEST_OBJECTS) $(TARGET)
-	$(CXX) -o $@ $(TEST_OBJECTS) -L. -ldheunit $(LDFLAGS)
-
-.PHONY: testrunner
-testrunner: $(TARGET) $(TEST_RUNNER)
+all: test
 
 .PHONY: test
 test: testrunner
-	$(TEST_RUNNER)
+	$(RUNNER)
+
+$(RUNNER): $(OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+.PHONY: testrunner
+testrunner: $(RUNNER)
 
 
 
@@ -67,18 +82,18 @@ HEADERS = $(shell find include src -name "*.h")
 
 .PHONY: format
 format:
-	clang-format -i -style=file $(HEADERS) $(SOURCES) $(TEST_SOURCES)
+	clang-format -i -style=file $(HEADERS) $(SOURCES)
 
 COMPILATION_DB = compile_commands.json
 
-COMPILATION_DB_ENTRIES := $(patsubst %, build/%.json, $(SOURCES) $(TEST_SOURCES))
+COMPILATION_DB_ENTRIES := $(patsubst %, build/%.json, $(SOURCES))
 
 $(COMPILATION_DB): $(COMPILATION_DB_ENTRIES)
 	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@
 
 .PHONY: tidy
 tidy: $(COMPILATION_DB)
-	clang-tidy -header-filter='^(src|include|test)/' -p=build $(SOURCES) $(TEST_SOURCES)
+	clang-tidy -header-filter='^(include|test)/' -p=build $(SOURCES)
 
 
 
@@ -90,8 +105,6 @@ tidy: $(COMPILATION_DB)
 ########################################################################
 
 -include $(OBJECTS:.o=.d)
--include $(TEST_OBJECTS:.o=.d)
-
 
 build/%.cpp.o: %.cpp
 	@mkdir -p $(@D)
@@ -103,5 +116,4 @@ build/%.json: %
 
 clean:
 	rm -rf build
-	rm -f libdheunit.a
 	rm -rf $(COMPILATION_DB)

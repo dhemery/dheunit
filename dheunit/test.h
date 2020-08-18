@@ -1,22 +1,25 @@
 #pragma once
 
 #include <functional>
-#include <map>
-#include <ostream>
-#include <set>
+#include <ios>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <utility>
-#include <vector>
 
 namespace dhe {
 namespace unit {
 
+  class Suite;
+  void registerSuite(std::string const &name, Suite *suite);
+  class Test;
+  void registerTest(std::string const &name, Test *test);
+
   /**
    * Accumulates a log entry string from one or more write operations.
    */
-  struct LogEntry {
+  class LogEntry {
+  public:
     struct FormatError : public std::runtime_error {
       FormatError(char const *what) : std::runtime_error{what} {}
     };
@@ -69,7 +72,8 @@ namespace unit {
    * Each test function receives a tester to report test failures and other information.
    * A test ends when it calls fatal() or failNow() or when it returns.
    */
-  struct Tester {
+  class Tester {
+  public:
     /**
      * Writes the string representation of each arg to the test's log, separated by spaces.
      */
@@ -138,11 +142,12 @@ namespace unit {
   /**
    * A standalone test (not part of a suite).
    */
-  struct Test {
+  class Test {
+  public:
     /**
      * Constructs a test and registers it by name.
      */
-    Test(std::string const &name);
+    Test(std::string const &name) { registerTest(name, this); }
 
     /**
      * Called by the test runner to execute this test.
@@ -163,11 +168,12 @@ namespace unit {
   /**
    * A suite of tests.
    */
-  struct Suite {
+  class Suite {
+  public:
     /**
      * Constructs a test suite and registers it by name.
      */
-    Suite(std::string const &name);
+    Suite(std::string const &name) { registerSuite(name, this); }
 
     /**
      * Called by the test runner to obtain the suite's tests.
@@ -176,52 +182,5 @@ namespace unit {
      */
     virtual void addTests(AddTestFunc) = 0;
   };
-
-  struct TestID {
-    TestID(std::string suiteName, std::string testName) : sName{std::move(suiteName)}, tName{std::move(testName)} {}
-
-    auto suiteName() const -> std::string { return sName; }
-
-    auto testName() const -> std::string { return tName; }
-
-    auto operator<(TestID const &rhs) const -> bool {
-      if (sName < rhs.sName) {
-        return true;
-      }
-      if (rhs.sName < sName) {
-        return false;
-      }
-      return tName < rhs.tName;
-    }
-
-  private:
-    std::string const sName;
-    std::string const tName;
-  };
-
-  struct Result {
-    Result(TestID id, bool passed, std::vector<std::string> log) :
-        testID{std::move(id)}, testPassed{passed}, testLog{std::move(log)} {}
-
-    auto id() const -> TestID { return testID; }
-    auto suiteName() const -> std::string { return testID.suiteName(); }
-    auto testName() const -> std::string { return testID.testName(); }
-    auto passed() const -> bool { return testPassed; }
-    auto log() const -> std::vector<std::string> { return testLog; }
-
-  private:
-    TestID const testID;
-    bool const testPassed;
-    std::vector<std::string> testLog;
-  };
-
-  using RunIDFunc = std::function<bool(TestID const &)>;
-  using LogFunc = std::function<void(TestID const &, std::string const &)>;
-  using ReportFunc = std::function<void(Result const &)>;
-
-  /**
-   * Runs all registered suites and standalone tests.
-   */
-  extern void runTests(RunIDFunc const &runID, LogFunc const &log, ReportFunc const &report);
 } // namespace unit
 } // namespace dhe

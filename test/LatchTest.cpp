@@ -1,6 +1,6 @@
 #include "Latch.h"
 
-#include "dheunit.h"
+#include "dheunit/test.h"
 
 using dhe::Latch;
 using dhe::unit::AddTestFunc;
