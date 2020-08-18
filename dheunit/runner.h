@@ -1,6 +1,7 @@
 #pragma once
 #include "test.h"
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <string>
