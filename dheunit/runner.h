@@ -179,12 +179,9 @@ namespace unit {
     void runTests(RunIDFunc const &filter, LogFunc const &log, ReportFunc const &report) {
       return testRun().run(filter, log, report);
     }
-
   } // namespace runner
 
-void registerSuite(std::string const &name, Suite *suite) { runner::testRun().registerSuite(name, suite); }
-
-void registerTest(std::string const &name, Test *test) { runner::testRun().registerTest(name, test); }
-
+  Test::Test(std::string const &name) { runner::testRun().registerTest(name, this); }
+  Suite::Suite(std::string const &name) { runner::testRun().registerSuite(name, this); }
 } // namespace unit
 } // namespace dhe

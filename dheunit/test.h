@@ -9,14 +9,8 @@
 
 namespace dhe {
 namespace unit {
-
-  class Suite;
-  void registerSuite(std::string const &name, Suite *suite);
-  class Test;
-  void registerTest(std::string const &name, Test *test);
-
   /**
-   * Accumulates a log entry string from one or more write operations.
+   * Builds a log entry from one or more write operations.
    */
   class LogEntry {
   public:
@@ -147,7 +141,7 @@ namespace unit {
     /**
      * Constructs a test and registers it by name.
      */
-    Test(std::string const &name) { registerTest(name, this); }
+    Test(std::string const &name);
 
     /**
      * Called by the test runner to execute this test.
@@ -173,7 +167,7 @@ namespace unit {
     /**
      * Constructs a test suite and registers it by name.
      */
-    Suite(std::string const &name) { registerSuite(name, this); }
+    Suite(std::string const &name);
 
     /**
      * Called by the test runner to obtain the suite's tests.
