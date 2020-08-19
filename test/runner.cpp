@@ -23,7 +23,8 @@ void report(TestID const &id, TestExecution const &execution) {
   } else {
     std::cout << redText << "FAILED: ";
   }
-  std::cout << normalText << id.suiteName() << ": " << id.testName() << std::endl;
+  std::cout << normalText << id.suiteName() << ": " << id.testName()
+            << std::endl;
 }
 
 auto main() -> int { runTests(report); }
