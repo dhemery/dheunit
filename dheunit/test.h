@@ -150,14 +150,15 @@ namespace unit {
   };
 
   /**
-   * The type of function that can be run as a test as part of a suite.
+   * The type of object that can be executed as a test.
    */
   using TestFunc = std::function<void(Tester &)>;
 
   /**
-   * The type of function that adds a TestFunc to a suite.
+   * The type of function that registers a TestFunc with its suite.
+   * Each suite will passed a TestRegistrar that it can use to register its tests.
    */
-  using AddTestFunc = std::function<void(std::string const &, TestFunc const &)>;
+  using TestRegistrar = std::function<void(std::string const &, TestFunc const &)>;
 
   /**
    * A suite of tests.
@@ -170,11 +171,10 @@ namespace unit {
     Suite(std::string const &name);
 
     /**
-     * Called by the test runner to obtain the suite's tests.
-     * Your implementation can call the given function any number of times to add tests to the suite.
-     * The test runner prepends the suite's name to the name of each test.
+     * Called by the test runner to obtain the suite's tests. Your implementation can call the registrar any number of
+     * times to submit tests for the suite to run. The test runner prepends the suite's name to the name of each test.
      */
-    virtual void addTests(AddTestFunc) = 0;
+    virtual void registerTests(TestRegistrar) = 0;
   };
 } // namespace unit
 } // namespace dhe

@@ -3,10 +3,10 @@
 #include "dheunit/test.h"
 
 using dhe::Latch;
-using dhe::unit::AddTestFunc;
 using dhe::unit::Suite;
 using dhe::unit::Tester;
 using dhe::unit::TestFunc;
+using dhe::unit::TestRegistrar;
 
 namespace dhe {
 namespace components {
@@ -22,7 +22,7 @@ namespace components {
   public:
     LatchSuite() : Suite{"dhe::Latch"} {}
 
-    void addTests(AddTestFunc addTest) override {
+    void registerTests(TestRegistrar addTest) override {
       addTest("is low by default", checkEquality(Latch{}, low, true));
 
       addTest("high == high", checkEquality(high, high, true));

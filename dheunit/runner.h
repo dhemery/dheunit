@@ -33,30 +33,14 @@ namespace unit {
       std::string const tName;
     };
 
-    struct Result {
-      Result(TestID id, bool passed, std::vector<std::string> log) :
-          testID{std::move(id)}, testPassed{passed}, testLog{std::move(log)} {}
-
-      auto id() const -> TestID { return testID; }
-      auto suiteName() const -> std::string { return testID.suiteName(); }
-      auto testName() const -> std::string { return testID.testName(); }
-      auto passed() const -> bool { return testPassed; }
-      auto log() const -> std::vector<std::string> { return testLog; }
-
-    private:
-      TestID const testID;
-      bool const testPassed;
-      std::vector<std::string> testLog;
-    };
-
-    using RunIDFunc = std::function<bool(TestID const &)>;
-    using LogFunc = std::function<void(TestID const &, std::string const &)>;
-    using ReportFunc = std::function<void(Result const &)>;
+    using TestLogger = std::function<void(std::string const &)>;
+    using TestExecution = std::function<bool(TestLogger const &)>;
+    using TestFilter = std::function<void(TestID const &, TestExecution const &)>;
 
     struct Runner : public Tester {
       class FailNowException : public std::exception {};
 
-      Runner(TestID id, TestFunc test, LogFunc log) : id{std::move(id)}, test{std::move(test)}, log{std::move(log)} {}
+      Runner(TestFunc test, TestLogger log) : test{std::move(test)}, log{std::move(log)} {}
 
       void fail() override { failed = true; }
 
@@ -65,12 +49,9 @@ namespace unit {
         throw FailNowException{};
       }
 
-      void addLogEntry(std::string entry) override {
-        log(id, entry);
-        logEntries.push_back(entry);
-      }
+      void addLogEntry(std::string entry) override { log(entry); }
 
-      auto run() -> Result {
+      auto run() -> bool {
         try {
           test(*this);
         } catch (FailNowException const &ignored) {
@@ -81,77 +62,60 @@ namespace unit {
         } catch (...) {
           error("Unrecognized exception");
         }
-        return Result{id, !failed, logEntries};
+        return !failed;
       }
 
     private:
-      TestID id;
       TestFunc test;
-      LogFunc log;
+      TestLogger log;
       bool failed{false};
-      std::vector<std::string> logEntries{};
     };
 
     /**
      * RunTest runs each test passed to operator(), describes each result to std::cout, and summarizes the results.
      */
     struct RunTest {
-      RunTest(RunIDFunc runID, LogFunc log, ReportFunc report) :
-          runID{std::move(runID)}, log{std::move(log)}, report{std::move(report)} {}
+      RunTest(TestFilter filter) : filter{std::move(filter)} {}
 
       void operator()(std::pair<TestID, TestFunc> const &nameAndTest) {
         auto const id{nameAndTest.first};
-        if (!runID(id)) {
-          return;
-        }
-
         auto test{nameAndTest.second};
-        auto runner = Runner{id, test, log};
-        auto const result = runner.run();
-
-        report(result);
+        auto execution = [&test](TestLogger const &log) -> bool { return Runner{test, log}.run(); };
+        filter(id, execution);
       }
 
     private:
-      RunIDFunc const runID;
-      LogFunc const log;
-      ReportFunc const report;
+      TestFilter const filter;
     };
 
     /**
-     * RunSuite runs the tests in each suite passed to operator(), describes each result to std::cout, and summarizes
-     * the results.
+     * RunSuite runs the tests in each suite passed to operator().
      */
     struct RunSuite {
-      RunSuite(RunIDFunc runID, LogFunc log, ReportFunc report) :
-          runID{std::move(runID)}, log{std::move(log)}, report{std::move(report)} {}
+      RunSuite(TestFilter filter) : filter{std::move(filter)} {}
 
       void operator()(std::pair<TestID, Suite *> const &idAndSuite) {
         auto const suiteID{idAndSuite.first};
-        if (!runID(suiteID)) {
-          return;
-        }
         auto *suite{idAndSuite.second};
 
         std::vector<std::pair<TestID, TestFunc>> suiteTests{};
-        suite->addTests([suiteID, &suiteTests](std::string const &testName, TestFunc const &test) {
+        auto registrar = [suiteID, &suiteTests](std::string const &testName, TestFunc const &test) {
           const TestID testID = TestID{suiteID.suiteName(), testName};
           suiteTests.emplace_back(testID, test);
-        });
+        };
+        suite->registerTests(registrar);
 
-        std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{runID, log, report});
+        std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{filter});
       }
 
     private:
-      RunIDFunc const runID;
-      LogFunc const log;
-      ReportFunc const report;
+      TestFilter const filter;
     };
 
     struct TestRun {
-      void run(RunIDFunc const &filter, LogFunc const &log, ReportFunc const &report) {
-        std::for_each(suites.cbegin(), suites.cend(), RunSuite{filter, log, report});
-        std::for_each(tests.cbegin(), tests.cend(), RunTest{filter, log, report});
+      void run(TestFilter const &filter) {
+        std::for_each(suites.cbegin(), suites.cend(), RunSuite{filter});
+        std::for_each(tests.cbegin(), tests.cend(), RunTest{filter});
       }
 
       void registerSuite(std::string const &name, Suite *suite) {
@@ -177,9 +141,7 @@ namespace unit {
     /**
      * Runs all registered suites and standalone tests.
      */
-    void runTests(RunIDFunc const &filter, LogFunc const &log, ReportFunc const &report) {
-      return testRun().run(filter, log, report);
-    }
+    void runTests(TestFilter const &filter) { return testRun().run(filter); }
   } // namespace runner
 
   Test::Test(std::string const &name) { runner::testRun().registerTest(name, this); }

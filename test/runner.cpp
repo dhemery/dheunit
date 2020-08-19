@@ -4,37 +4,26 @@
 #include <iostream>
 #include <string>
 
-using dhe::unit::runner::LogFunc;
-using dhe::unit::runner::ReportFunc;
-using dhe::unit::runner::Result;
-using dhe::unit::runner::RunIDFunc;
 using dhe::unit::runner::runTests;
+using dhe::unit::runner::TestExecution;
+using dhe::unit::runner::TestFilter;
 using dhe::unit::runner::TestID;
+using dhe::unit::runner::TestLogger;
 
-static auto constexpr *redText = "\033[1;31m";
-static auto constexpr *normalText = "\033[1;30m";
+static auto constexpr *redText = "\u001b[31m";
+static auto constexpr *greenText = "\u001b[32m";
+static auto constexpr *normalText = "\u001b[0m";
 
-auto main() -> int {
-  auto nfailures{0};
-  auto ntests{0};
+void log_nothing(std::string const &entry) {}
 
-  auto const runAll = [](TestID const &/*id*/) -> bool { return true; };
-  auto const logNothing = [](TestID const &id, std::string const &entry) {};
-
-  ReportFunc printResult = [&nfailures, &ntests](Result const &result) {
-    ntests++;
-    if (result.passed()) {
-      return;
-    }
-
-    nfailures++;
-    std::cout << redText << "FAILED: " << normalText << result.suiteName() << ": " << result.testName() << std::endl;
-    for (auto const &entry : result.log()) {
-      std::cout << "    " << entry << std::endl;
-    }
-  };
-
-  runTests(runAll, logNothing, printResult);
-
-  return nfailures > 0 ? 1 : 0;
+void report(TestID const &id, TestExecution const &execution) {
+  auto const passed = execution(log_nothing);
+  if (passed) {
+    std::cout << greenText << "PASSED: ";
+  } else {
+    std::cout << redText << "FAILED: ";
+  }
+  std::cout << normalText << id.suiteName() << ": " << id.testName() << std::endl;
 }
+
+auto main() -> int { runTests(report); }

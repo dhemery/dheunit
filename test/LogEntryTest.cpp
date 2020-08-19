@@ -4,7 +4,7 @@ namespace dhe {
 namespace unit {
   struct LogEntryLogSuite : public Suite {
     LogEntryLogSuite() : Suite{"dhe::unit::LogEntry write"} {}
-    void addTests(AddTestFunc addTest) override {
+    void registerTests(TestRegistrar addTest) override {
       addTest("one arg", [](Tester &t) {
         auto entry = LogEntry{};
         entry.write(true);
@@ -31,7 +31,7 @@ namespace unit {
 
   struct LogEntryLogfSuite : public Suite {
     LogEntryLogfSuite() : Suite{"dhe::unit::LogEntry writef"} {}
-    void addTests(AddTestFunc addTest) override {
+    void registerTests(TestRegistrar addTest) override {
       addTest("null format with no args", [](Tester &t) {
         auto entry = LogEntry{};
 
