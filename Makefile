@@ -78,7 +78,7 @@ testrunner: $(RUNNER)
 #
 ########################################################################
 
-HEADERS = $(shell find include src -name "*.h")
+HEADERS = $(shell find dheunit -name "*.h")
 
 .PHONY: format
 format:
