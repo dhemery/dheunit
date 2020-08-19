@@ -15,79 +15,80 @@ static auto constexpr falling = Latch{false, true};
 static auto constexpr rising = Latch{true, true};
 static auto constexpr high = Latch{true, false};
 
-static auto checkEquality(const Latch &a, const Latch &b, bool wantEQ)
+static auto check_equality(const Latch &a, const Latch &b, bool want_eq)
     -> TestFunc;
-static auto checkClock(Latch l, bool signal, Latch wantLatch) -> TestFunc;
+static auto check_clock(Latch l, bool signal, Latch want_latch) -> TestFunc;
 
 class LatchSuite : public Suite {
 public:
   LatchSuite() : Suite{"dhe::Latch"} {}
 
-  void registerTests(TestRegistrar addTest) override {
-    addTest("is low by default", checkEquality(Latch{}, low, true));
+  void register_tests(TestRegistrar add_test) override {
+    add_test("is low by default", check_equality(Latch{}, low, true));
 
-    addTest("high == high", checkEquality(high, high, true));
-    addTest("high != low", checkEquality(high, low, false));
-    addTest("high != rising", checkEquality(high, rising, false));
-    addTest("high != falling", checkEquality(high, falling, false));
-    addTest("low != high", checkEquality(low, high, false));
-    addTest("low == low", checkEquality(low, low, true));
-    addTest("low != rising", checkEquality(low, rising, false));
-    addTest("low != falling", checkEquality(low, falling, false));
-    addTest("rising != high", checkEquality(rising, high, false));
-    addTest("rising != low", checkEquality(rising, low, false));
-    addTest("rising == rising", checkEquality(rising, rising, true));
-    addTest("rising != falling", checkEquality(rising, falling, false));
-    addTest("falling != high", checkEquality(falling, high, false));
-    addTest("falling != low", checkEquality(falling, low, false));
-    addTest("falling != rising", checkEquality(falling, rising, false));
-    addTest("falling == falling", checkEquality(falling, falling, true));
+    add_test("high == high", check_equality(high, high, true));
+    add_test("high != low", check_equality(high, low, false));
+    add_test("high != rising", check_equality(high, rising, false));
+    add_test("high != falling", check_equality(high, falling, false));
+    add_test("low != high", check_equality(low, high, false));
+    add_test("low == low", check_equality(low, low, true));
+    add_test("low != rising", check_equality(low, rising, false));
+    add_test("low != falling", check_equality(low, falling, false));
+    add_test("rising != high", check_equality(rising, high, false));
+    add_test("rising != low", check_equality(rising, low, false));
+    add_test("rising == rising", check_equality(rising, rising, true));
+    add_test("rising != falling", check_equality(rising, falling, false));
+    add_test("falling != high", check_equality(falling, high, false));
+    add_test("falling != low", check_equality(falling, low, false));
+    add_test("falling != rising", check_equality(falling, rising, false));
+    add_test("falling == falling", check_equality(falling, falling, true));
 
-    addTest("high + high signal → unchanged", checkClock(high, true, high));
-    addTest("high + low signal → falls", checkClock(high, false, falling));
+    add_test("high + high signal → unchanged", check_clock(high, true, high));
+    add_test("high + low signal → falls", check_clock(high, false, falling));
 
-    addTest("low + high signal → rises", checkClock(low, true, rising));
-    addTest("low + low signal → unchanged", checkClock(low, false, low));
+    add_test("low + high signal → rises", check_clock(low, true, rising));
+    add_test("low + low signal → unchanged", check_clock(low, false, low));
 
-    addTest("rising + high signal → loses edge",
-            checkClock(rising, true, high));
-    addTest("rising + low signal → falling",
-            checkClock(rising, false, falling));
+    add_test("rising + high signal → loses edge",
+             check_clock(rising, true, high));
+    add_test("rising + low signal → falling",
+             check_clock(rising, false, falling));
 
-    addTest("falling + high signal → rises", checkClock(falling, true, rising));
-    addTest("falling + low signal → loses edge",
-            checkClock(falling, false, low));
+    add_test("falling + high signal → rises",
+             check_clock(falling, true, rising));
+    add_test("falling + low signal → loses edge",
+             check_clock(falling, false, low));
   }
 };
 
-static LatchSuite latchSuite __attribute__((unused)){};
+static LatchSuite latch_suite __attribute__((unused)){};
 
-auto checkClock(Latch l, bool signal, Latch wantLatch) -> TestFunc {
-  return [l, signal, wantLatch](Tester &t) mutable {
+auto check_clock(Latch l, bool signal, Latch want_latch) -> TestFunc {
+  return [l, signal, want_latch](Tester &t) mutable {
     l.clock(signal);
 
-    if (l != wantLatch) {
-      t.errorf("Got {}, want {}", l, wantLatch);
+    if (l != want_latch) {
+      t.errorf("Got {}, want {}", l, want_latch);
     }
   };
 }
 
-auto checkEquality(const Latch &a, const Latch &b, bool wantEQ) -> TestFunc {
-  return [a, b, wantEQ](Tester &t) {
+auto check_equality(const Latch &a, const Latch &b, bool want_eq) -> TestFunc {
+  return [a, b, want_eq](Tester &t) {
     auto const aeqb = (a == b);
-    if (aeqb != wantEQ) {
+    if (aeqb != want_eq) {
       t.errorf("{}=={} got {}, want {}", a, b, aeqb, !aeqb);
     }
     auto const beqa = (b == a);
-    if (beqa != wantEQ) {
+    if (beqa != want_eq) {
       t.errorf("{}=={} got {}, want {}", b, a, beqa, !beqa);
     }
     auto const aneb = (a != b);
-    if (aneb == wantEQ) {
+    if (aneb == want_eq) {
       t.errorf("{}!={} got {}, want {}", a, b, aneb, !aneb);
     }
     auto const bnea = (b != a);
-    if (bnea == wantEQ) {
+    if (bnea == want_eq) {
       t.errorf("{}!={} got {}, want {}", b, a, bnea, !bnea);
     }
   };

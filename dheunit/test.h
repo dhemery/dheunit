@@ -18,13 +18,13 @@ public:
     FormatError(char const *what) : std::runtime_error{what} {}
   };
 
-  LogEntry() { os << std::boolalpha; }
+  LogEntry() { os_ << std::boolalpha; }
 
-  template <typename T> void write(T &&t) { os << t; }
+  template <typename T> void write(T &&t) { os_ << t; }
 
   template <typename T, typename... Ts> void write(T &&t, Ts &&... ts) {
     write(t);
-    os << ' ';
+    os_ << ' ';
     write(ts...);
   }
 
@@ -36,7 +36,7 @@ public:
       if (f[0] == '{' && f[1] == '}') {
         throw FormatError{"Log format error: not enough arguments"};
       }
-      os << f[0];
+      os_ << f[0];
       f++;
     }
   }
@@ -48,19 +48,19 @@ public:
     }
     while (f[0] != 0) {
       if (f[0] == '{' && f[1] == '}') {
-        os << t;
+        os_ << t;
         return writef(f + 2, ts...);
       }
-      os << f[0];
+      os_ << f[0];
       f++;
     }
     throw FormatError{"Log format error: too many arguments"};
   }
 
-  auto str() const -> std::string { return os.str(); }
+  auto str() const -> std::string { return os_.str(); }
 
 private:
-  std::ostringstream os{};
+  std::ostringstream os_{};
 };
 
 /**
@@ -77,7 +77,7 @@ public:
   template <typename... Ts> void log(Ts &&... args) {
     auto entry = LogEntry{};
     entry.write(args...);
-    addLogEntry(entry.str());
+    add_log_entry(entry.str());
   }
 
   /**
@@ -93,7 +93,7 @@ public:
    */
   template <typename... Ts> void fatal(Ts &&... args) {
     log(args...);
-    failNow();
+    fail_now();
   }
 
   /**
@@ -103,7 +103,7 @@ public:
   template <typename... Ts> void logf(char const *format, Ts &&... args) {
     auto entry = LogEntry{};
     entry.writef(format, args...);
-    addLogEntry(entry.str());
+    add_log_entry(entry.str());
   };
 
   /**
@@ -119,7 +119,7 @@ public:
    */
   template <typename... Ts> void fatalf(char const *format, Ts &&... args) {
     logf(format, args...);
-    failNow();
+    fail_now();
   };
 
   /**
@@ -130,10 +130,10 @@ public:
   /**
    * Marks the test as failed and stops executing it.
    */
-  virtual void failNow() = 0;
+  virtual void fail_now() = 0;
 
 protected:
-  virtual void addLogEntry(std::string entry) = 0;
+  virtual void add_log_entry(std::string entry) = 0;
 };
 
 /**
@@ -179,7 +179,7 @@ public:
    * can call the registrar any number of times to submit tests for the suite to
    * run. The test runner prepends the suite's name to the name of each test.
    */
-  virtual void registerTests(TestRegistrar) = 0;
+  virtual void register_tests(TestRegistrar) = 0;
 };
 } // namespace unit
 } // namespace dhe

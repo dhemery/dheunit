@@ -6,30 +6,33 @@ namespace dhe {
 class Latch {
 public:
   constexpr Latch() = default;
-  constexpr Latch(bool state, bool edge) : state{state}, edge{edge} {}
+  constexpr Latch(bool state, bool edge) : state_{state}, edge_{edge} {}
   void clock(bool signal) {
-    edge = signal != state;
-    state = signal;
+    edge_ = signal != state_;
+    state_ = signal;
   }
 
-  auto isHigh() const -> bool { return state; };
-  auto isEdge() const -> bool { return edge; };
+  auto is_high() const -> bool { return state_; };
+  auto is_edge() const -> bool { return edge_; };
 
-  auto isLow() const -> bool { return !isHigh(); };
-  auto isFall() const -> bool { return isEdge() && isLow(); };
-  auto isRise() const -> bool { return isEdge() && isHigh(); };
+  auto is_low() const -> bool { return !is_high(); };
+  auto is_fall() const -> bool { return is_edge() && is_low(); };
+  auto is_rise() const -> bool { return is_edge() && is_high(); };
 
-  auto operator==(Latch const &rhs) const -> bool { return state == rhs.state && edge == rhs.edge; }
+  auto operator==(Latch const &rhs) const -> bool {
+    return state_ == rhs.state_ && edge_ == rhs.edge_;
+  }
   auto operator!=(Latch const &rhs) const -> bool { return !(rhs == *this); }
 
-  friend auto operator<<(std::ostream &os, Latch const &latch) -> std::ostream & {
-    os << "Latch{" << latch.state << ',' << latch.edge << '}';
+  friend auto operator<<(std::ostream &os, Latch const &latch)
+      -> std::ostream & {
+    os << "Latch{" << latch.state_ << ',' << latch.edge_ << '}';
     return os;
   }
 
 private:
-  bool state{};
-  bool edge{};
+  bool state_{};
+  bool edge_{};
 };
 
 } // namespace dhe

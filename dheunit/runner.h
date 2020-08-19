@@ -12,26 +12,26 @@ namespace dhe {
 namespace unit {
 namespace runner {
 struct TestID {
-  TestID(std::string suiteName, std::string testName)
-      : sName{std::move(suiteName)}, tName{std::move(testName)} {}
+  TestID(std::string suite_name, std::string test_name)
+      : suite_name_{std::move(suite_name)}, test_name_{std::move(test_name)} {}
 
-  auto suiteName() const -> std::string { return sName; }
+  auto suite_name() const -> std::string { return suite_name_; }
 
-  auto testName() const -> std::string { return tName; }
+  auto test_name() const -> std::string { return test_name_; }
 
   auto operator<(TestID const &rhs) const -> bool {
-    if (sName < rhs.sName) {
+    if (suite_name_ < rhs.suite_name_) {
       return true;
     }
-    if (rhs.sName < sName) {
+    if (rhs.suite_name_ < suite_name_) {
       return false;
     }
-    return tName < rhs.tName;
+    return test_name_ < rhs.test_name_;
   }
 
 private:
-  std::string const sName;
-  std::string const tName;
+  std::string const suite_name_;
+  std::string const test_name_;
 };
 
 using TestLogger = std::function<void(std::string const &)>;
@@ -42,20 +42,20 @@ struct Runner : public Tester {
   class FailNowException : public std::exception {};
 
   Runner(TestFunc test, TestLogger log)
-      : test{std::move(test)}, log{std::move(log)} {}
+      : test_{std::move(test)}, log_{std::move(log)} {}
 
-  void fail() override { failed = true; }
+  void fail() override { failed_ = true; }
 
-  void failNow() override {
+  void fail_now() override {
     fail();
     throw FailNowException{};
   }
 
-  void addLogEntry(std::string entry) override { log(entry); }
+  void add_log_entry(std::string entry) override { log_(entry); }
 
   auto run() -> bool {
     try {
-      test(*this);
+      test_(*this);
     } catch (FailNowException const &ignored) {
     } catch (char const *s) {
       error("Unexpected string exception: ", s);
@@ -64,13 +64,13 @@ struct Runner : public Tester {
     } catch (...) {
       error("Unrecognized exception");
     }
-    return !failed;
+    return !failed_;
   }
 
 private:
-  TestFunc test;
-  TestLogger log;
-  bool failed{false};
+  TestFunc test_;
+  TestLogger log_;
+  bool failed_{false};
 };
 
 /**
@@ -78,83 +78,85 @@ private:
  * std::cout, and summarizes the results.
  */
 struct RunTest {
-  RunTest(TestFilter filter) : filter{std::move(filter)} {}
+  RunTest(TestFilter filter) : filter_{std::move(filter)} {}
 
-  void operator()(std::pair<TestID, TestFunc> const &nameAndTest) {
-    auto const id{nameAndTest.first};
-    auto test{nameAndTest.second};
+  void operator()(std::pair<TestID, TestFunc> const &name_and_test) {
+    auto const id{name_and_test.first};
+    auto test{name_and_test.second};
     auto execution = [&test](TestLogger const &log) -> bool {
       return Runner{test, log}.run();
     };
-    filter(id, execution);
+    filter_(id, execution);
   }
 
 private:
-  TestFilter const filter;
+  TestFilter const filter_;
 };
 
 /**
  * RunSuite runs the tests in each suite passed to operator().
  */
 struct RunSuite {
-  RunSuite(TestFilter filter) : filter{std::move(filter)} {}
+  RunSuite(TestFilter filter) : filter_{std::move(filter)} {}
 
-  void operator()(std::pair<TestID, Suite *> const &idAndSuite) {
-    auto const suiteID{idAndSuite.first};
-    auto *suite{idAndSuite.second};
+  void operator()(std::pair<TestID, Suite *> const &id_and_suite) {
+    auto const suite_id{id_and_suite.first};
+    auto *suite{id_and_suite.second};
 
-    std::vector<std::pair<TestID, TestFunc>> suiteTests{};
-    auto registrar = [suiteID, &suiteTests](std::string const &testName,
-                                            TestFunc const &test) {
-      const TestID testID = TestID{suiteID.suiteName(), testName};
-      suiteTests.emplace_back(testID, test);
+    std::vector<std::pair<TestID, TestFunc>> suite_tests{};
+    auto registrar = [suite_id, &suite_tests](std::string const &test_name,
+                                              TestFunc const &test) {
+      const TestID test_id = TestID{suite_id.suite_name(), test_name};
+      suite_tests.emplace_back(test_id, test);
     };
-    suite->registerTests(registrar);
+    suite->register_tests(registrar);
 
-    std::for_each(suiteTests.cbegin(), suiteTests.cend(), RunTest{filter});
+    std::for_each(suite_tests.cbegin(), suite_tests.cend(), RunTest{filter_});
   }
 
 private:
-  TestFilter const filter;
+  TestFilter const filter_;
 };
 
 struct TestRun {
   void run(TestFilter const &filter) {
-    std::for_each(suites.cbegin(), suites.cend(), RunSuite{filter});
-    std::for_each(tests.cbegin(), tests.cend(), RunTest{filter});
+    std::for_each(suites_.cbegin(), suites_.cend(), RunSuite{filter});
+    std::for_each(tests_.cbegin(), tests_.cend(), RunTest{filter});
   }
 
-  void registerSuite(std::string const &name, Suite *suite) {
-    const TestID suiteID = TestID{name, ""};
-    suites[suiteID] = suite;
+  void register_suite(std::string const &name, Suite *suite) {
+    const TestID suite_id = TestID{name, ""};
+    suites_[suite_id] = suite;
   }
 
-  void registerTest(std::string const &name, Test *test) {
-    auto const testID = TestID{"", name};
-    tests[testID] = [test](Tester &t) { test->run(t); };
+  void register_test(std::string const &name, Test *test) {
+    auto const test_id = TestID{"", name};
+    tests_[test_id] = [test](Tester &t) { test->run(t); };
   }
 
 private:
-  std::map<TestID, Suite *> suites{};
-  std::map<TestID, TestFunc> tests{};
+  std::map<TestID, Suite *> suites_{};
+  std::map<TestID, TestFunc> tests_{};
 };
 
-static auto testRun() -> TestRun & {
-  static auto theTestRun = TestRun{};
-  return theTestRun;
+static auto test_run() -> TestRun & {
+  static auto the_test_run = TestRun{};
+  return the_test_run;
 }
 
 /**
  * Runs all registered suites and standalone tests.
  */
-void runTests(TestFilter const &filter) { return testRun().run(filter); }
+inline void run_tests(TestFilter const &filter) {
+  return test_run().run(filter);
+}
 } // namespace runner
 
 Test::Test(std::string const &name) {
-  runner::testRun().registerTest(name, this);
+  runner::test_run().register_test(name, this);
 }
 Suite::Suite(std::string const &name) {
-  runner::testRun().registerSuite(name, this);
+  runner::test_run().register_suite(name, this);
 }
 } // namespace unit
 } // namespace dhe
