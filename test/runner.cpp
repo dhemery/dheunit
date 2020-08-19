@@ -14,8 +14,6 @@ static auto constexpr *red_text = "\u001b[31m";
 static auto constexpr *green_text = "\u001b[32m";
 static auto constexpr *normal_text = "\u001b[0m";
 
-void log_nothing(std::string const &entry) {}
-
 void report(TestID const &id, TestExecution const &execution) {
   auto const passed = execution(log_nothing);
   if (passed) {

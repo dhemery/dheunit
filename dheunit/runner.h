@@ -11,7 +11,13 @@
 namespace dhe {
 namespace unit {
 namespace runner {
-struct TestID {
+
+/**
+ * A TestID identifies a test by suite name and test name.
+ * A standalone test (not part of a suite) has an empty suite name.
+ */
+class TestID {
+public:
   TestID(std::string suite_name, std::string test_name)
       : suite_name_{std::move(suite_name)}, test_name_{std::move(test_name)} {}
 
@@ -38,20 +44,19 @@ using TestLogger = std::function<void(std::string const &)>;
 using TestExecution = std::function<bool(TestLogger const &)>;
 using TestFilter = std::function<void(TestID const &, TestExecution const &)>;
 
-struct Runner : public Tester {
-  class FailNowException : public std::exception {};
+class FailNowException : public std::exception {};
 
+class Runner : public Tester {
+public:
   Runner(TestFunc test, TestLogger log)
       : test_{std::move(test)}, log_{std::move(log)} {}
 
-  void fail() override { failed_ = true; }
+  void fail() override { passed_ = false; }
 
   void fail_now() override {
     fail();
     throw FailNowException{};
   }
-
-  void add_log_entry(std::string entry) override { log_(entry); }
 
   auto run() -> bool {
     try {
@@ -64,20 +69,23 @@ struct Runner : public Tester {
     } catch (...) {
       error("Unrecognized exception");
     }
-    return !failed_;
+    return passed_;
   }
 
 private:
+  void add_log_entry(std::string entry) override { log_(entry); }
+
   TestFunc test_;
   TestLogger log_;
-  bool failed_{false};
+  bool passed_{true};
 };
 
 /**
  * RunTest runs each test passed to operator(), describes each result to
  * std::cout, and summarizes the results.
  */
-struct RunTest {
+class RunTest {
+public:
   RunTest(TestFilter filter) : filter_{std::move(filter)} {}
 
   void operator()(std::pair<TestID, TestFunc> const &name_and_test) {
@@ -96,7 +104,8 @@ private:
 /**
  * RunSuite runs the tests in each suite passed to operator().
  */
-struct RunSuite {
+class RunSuite {
+public:
   RunSuite(TestFilter filter) : filter_{std::move(filter)} {}
 
   void operator()(std::pair<TestID, Suite *> const &id_and_suite) {
@@ -118,7 +127,8 @@ private:
   TestFilter const filter_;
 };
 
-struct TestRun {
+class TestRun {
+public:
   void run(TestFilter const &filter) {
     std::for_each(suites_.cbegin(), suites_.cend(), RunSuite{filter});
     std::for_each(tests_.cbegin(), tests_.cend(), RunTest{filter});
@@ -144,8 +154,12 @@ static auto test_run() -> TestRun & {
   return the_test_run;
 }
 
+static inline void log_nothing(std::string const &entry) {}
+
 /**
- * Runs all registered suites and standalone tests.
+ * Passes a TestID and a TestExecution for each registered test to the filter.
+ * A typical filter will invoke the execution, passing it a logger to gather the
+ * logs, and print the result and the logs.
  */
 inline void run_tests(TestFilter const &filter) {
   return test_run().run(filter);
@@ -155,6 +169,7 @@ inline void run_tests(TestFilter const &filter) {
 Test::Test(std::string const &name) {
   runner::test_run().register_test(name, this);
 }
+
 Suite::Suite(std::string const &name) {
   runner::test_run().register_suite(name, this);
 }
