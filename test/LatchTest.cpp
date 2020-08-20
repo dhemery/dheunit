@@ -24,7 +24,7 @@ public:
   LatchSuite() : Suite{"dhe::Latch"} {}
 
   void register_tests(TestRegistrar add_test) override {
-    add_test("is low by default", check_equality(Latch{}, low, false));
+    add_test("is low by default", check_equality(Latch{}, low, true));
 
     add_test("high == high", check_equality(high, high, true));
     add_test("high != low", check_equality(high, low, false));
