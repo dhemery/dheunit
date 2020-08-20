@@ -40,16 +40,26 @@ private:
   std::string const test_name_;
 };
 
-using TestLogger = std::function<void(std::string const &)>;
-using TestExecution = std::function<bool(TestLogger const &)>;
-using TestFilter = std::function<void(TestID const &, TestExecution const &)>;
+class TestResult {
+public:
+  TestResult(TestID id, bool passed, std::vector<std::string> log)
+      : id_{std::move(id)}, passed_{passed}, log_{std::move(log)} {}
+  auto id() const -> TestID const & { return id_; }
+  auto passed() const -> bool { return passed_; }
+  auto log() const -> std::vector<std::string> const & { return log_; }
+
+private:
+  TestID const id_;
+  bool const passed_;
+  std::vector<std::string> const log_;
+};
 
 class FailNowException : public std::exception {};
 
 class Runner : public Tester {
 public:
-  Runner(TestFunc test, TestLogger log)
-      : test_{std::move(test)}, log_{std::move(log)} {}
+  Runner(TestID id, TestFunc test)
+      : id_{std::move(id)}, test_{std::move(test)} {}
 
   void fail() override { passed_ = false; }
 
@@ -58,7 +68,7 @@ public:
     throw FailNowException{};
   }
 
-  auto run() -> bool {
+  auto run() -> TestResult {
     try {
       test_(*this);
     } catch (FailNowException const &ignored) {
@@ -69,74 +79,72 @@ public:
     } catch (...) {
       error("Unrecognized exception");
     }
-    return passed_;
+    return TestResult{id_, passed_, log_};
   }
 
 private:
-  void add_log_entry(std::string entry) override { log_(entry); }
+  void add_log_entry(std::string entry) override { log_.push_back(entry); }
 
+  TestID const id_;
   TestFunc test_;
-  TestLogger log_;
+  std::vector<std::string> log_;
   bool passed_{true};
 };
 
-/**
- * RunTest runs each test passed to operator(), describes each result to
- * std::cout, and summarizes the results.
- */
-class RunTest {
+template <typename C> class RunTest {
 public:
-  RunTest(TestFilter filter) : filter_{std::move(filter)} {}
+  RunTest(C &controller) : controller_{controller} {}
 
-  void operator()(std::pair<TestID, TestFunc> const &name_and_test) {
-    auto const id{name_and_test.first};
-    auto test{name_and_test.second};
-    auto execution = [&test](TestLogger const &log) -> bool {
-      return Runner{test, log}.run();
-    };
-    filter_(id, execution);
+  void operator()(std::pair<TestID, TestFunc> const &id_and_test) {
+    auto const id{id_and_test.first};
+    if (!controller_.select_test(id)) {
+      return;
+    }
+    auto test{id_and_test.second};
+    auto const result = Runner{id, test}.run();
+    controller_.report(result);
   }
 
 private:
-  TestFilter const filter_;
+  C &controller_;
 };
 
-/**
- * RunSuite runs the tests in each suite passed to operator().
- */
-class RunSuite {
+template <typename C> class RunSuite {
 public:
-  RunSuite(TestFilter filter) : filter_{std::move(filter)} {}
+  RunSuite(C &controller) : controller_{controller} {}
 
-  void operator()(std::pair<TestID, Suite *> const &id_and_suite) {
+  void operator()(std::pair<std::string, Suite *> const &id_and_suite) {
     auto const suite_id{id_and_suite.first};
+    if (!controller_.select_suite(suite_id)) {
+      return;
+    }
     auto *suite{id_and_suite.second};
 
     std::vector<std::pair<TestID, TestFunc>> suite_tests{};
     auto registrar = [suite_id, &suite_tests](std::string const &test_name,
                                               TestFunc const &test) {
-      const TestID test_id = TestID{suite_id.suite_name(), test_name};
+      const TestID test_id = TestID{suite_id, test_name};
       suite_tests.emplace_back(test_id, test);
     };
     suite->register_tests(registrar);
 
-    std::for_each(suite_tests.cbegin(), suite_tests.cend(), RunTest{filter_});
+    std::for_each(suite_tests.cbegin(), suite_tests.cend(),
+                  RunTest<C>{controller_});
   }
 
 private:
-  TestFilter const filter_;
+  C &controller_;
 };
 
 class TestRun {
 public:
-  void run(TestFilter const &filter) {
-    std::for_each(suites_.cbegin(), suites_.cend(), RunSuite{filter});
-    std::for_each(tests_.cbegin(), tests_.cend(), RunTest{filter});
+  template <typename C> void run(C &controller) {
+    std::for_each(suites_.cbegin(), suites_.cend(), RunSuite<C>{controller});
+    std::for_each(tests_.cbegin(), tests_.cend(), RunTest<C>{controller});
   }
 
   void register_suite(std::string const &name, Suite *suite) {
-    const TestID suite_id = TestID{name, ""};
-    suites_[suite_id] = suite;
+    suites_[name] = suite;
   }
 
   void register_test(std::string const &name, Test *test) {
@@ -145,7 +153,7 @@ public:
   }
 
 private:
-  std::map<TestID, Suite *> suites_{};
+  std::map<std::string, Suite *> suites_{};
   std::map<TestID, TestFunc> tests_{};
 };
 
@@ -154,16 +162,56 @@ static auto test_run() -> TestRun & {
   return the_test_run;
 }
 
-static inline void log_nothing(std::string const &entry) {}
+class StandardTestController {
+public:
+  auto select_suite(std::string const & /*name*/) -> bool { return true; }
 
-/**
- * Passes a TestID and a TestExecution for each registered test to the filter.
- * A typical filter will invoke the execution, passing it a logger to gather the
- * logs, and print the result and the logs.
- */
-inline void run_tests(TestFilter const &filter) {
-  return test_run().run(filter);
+  auto select_test(TestID const & /*id*/) -> bool { return true; }
+
+  void report(TestResult const &result) {
+    test_count_++;
+    if (result.passed()) {
+      std::cout << pass_text << "PASSED: ";
+    } else {
+      fail_count_++;
+      std::cout << fail_text << "FAILED: ";
+    }
+    std::cout << normal_text << result.id().suite_name() << ": "
+              << result.id().test_name() << std::endl;
+    for (auto const &entry : result.log()) {
+      std::cout << "    " << entry << std::endl;
+    }
+  }
+
+  auto summarize() -> int {
+    std::cout << test_count_ << " tests";
+    auto const pass_count = test_count_ - fail_count_;
+    if (pass_count > 0) {
+      std::cout << " / " << pass_text << test_count_ << " PASSED"
+                << normal_text;
+    }
+    if (fail_count_ > 0) {
+      std::cout << " / " << fail_text << fail_count_ << " FAILED"
+                << normal_text;
+    }
+    std::cout << std::endl;
+    return fail_count_ > 0 ? 1 : 0;
+  }
+
+private:
+  static auto constexpr *fail_text = "\u001b[31m";
+  static auto constexpr *pass_text = "\u001b[32m";
+  static auto constexpr *normal_text = "\u001b[0m";
+
+  int test_count_ = 0;
+  int fail_count_ = 0;
+};
+
+template <typename C> static inline auto run_tests(C &controller) -> int {
+  test_run().run(controller);
+  return controller.summarize();
 }
+
 } // namespace runner
 
 Test::Test(std::string const &name) {
