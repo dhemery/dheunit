@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace dhe {
 namespace unit {
@@ -65,33 +66,37 @@ private:
 
 /**
  * Each test function receives a tester to report test failures and other
- * information. A test ends when it calls fatal() or failNow() or when it
+ * information. A test ends when it calls fatal() or fail_now() or when it
  * returns.
  */
 class Tester {
 public:
+  class FailNowException : public std::exception {};
+
+  void log(std::string const &entry) { log_.push_back(entry); }
+
   /**
    * Writes the string representation of each arg to the test's log, separated
    * by spaces.
    */
-  template <typename... Ts> void log(Ts &&... args) {
+  template <typename... Ts> void log(Ts const &... args) {
     auto entry = LogEntry{};
     entry.write(args...);
-    add_log_entry(entry.str());
+    log(entry.str());
   }
 
   /**
    * Equivalent to log(args) followed by fail().
    */
-  template <typename... Ts> void error(Ts &&... args) {
+  template <typename... Ts> void error(Ts const &... args) {
     log(args...);
     fail();
   }
 
   /**
-   * Equivalent to log(args) followed by failNow().
+   * Equivalent to log(args) followed by fail_now().
    */
-  template <typename... Ts> void fatal(Ts &&... args) {
+  template <typename... Ts> void fatal(Ts const &... args) {
     log(args...);
     fail_now();
   }
@@ -100,24 +105,26 @@ public:
    * Writes the format string to the test's log, replacing each {} with the
    * string representation of the corresponding arg.
    */
-  template <typename... Ts> void logf(char const *format, Ts &&... args) {
+  template <typename... Ts> void logf(char const *format, Ts const &... args) {
     auto entry = LogEntry{};
     entry.writef(format, args...);
-    add_log_entry(entry.str());
+    log(entry.str());
   };
 
   /**
    * Equivalent to logf(format, args) followed by fail().
    */
-  template <typename... Ts> void errorf(char const *format, Ts &&... args) {
+  template <typename... Ts>
+  void errorf(char const *format, Ts const &... args) {
     logf(format, args...);
     fail();
   };
 
   /**
-   * Equivalent to logf(format, args) followed by failNow().
+   * Equivalent to logf(format, args) followed by fail_now().
    */
-  template <typename... Ts> void fatalf(char const *format, Ts &&... args) {
+  template <typename... Ts>
+  void fatalf(char const *format, Ts const &... args) {
     logf(format, args...);
     fail_now();
   };
@@ -125,15 +132,23 @@ public:
   /**
    * Marks the test as failed and continues executing it.
    */
-  virtual void fail() = 0;
+  void fail() { failed_ = false; }
 
   /**
    * Marks the test as failed and stops executing it.
    */
-  virtual void fail_now() = 0;
+  void fail_now() {
+    fail();
+    throw FailNowException{};
+  }
 
-protected:
-  virtual void add_log_entry(std::string entry) = 0;
+  auto failed() const -> bool { return failed_; }
+
+  explicit Tester(std::vector<std::string> &log) : log_{log} {}
+
+private:
+  bool failed_{false};
+  std::vector<std::string> &log_;
 };
 
 /**
@@ -144,7 +159,7 @@ public:
   /**
    * Constructs a test and registers it by name.
    */
-  Test(std::string const &name);
+  explicit Test(std::string const &name);
 
   /**
    * Called by the test runner to execute this test.
@@ -172,7 +187,7 @@ public:
   /**
    * Constructs a test suite and registers it by name.
    */
-  Suite(std::string const &name);
+  explicit Suite(std::string const &name);
 
   /**
    * Called by the test runner to obtain the suite's tests. Your implementation

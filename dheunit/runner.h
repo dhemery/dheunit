@@ -42,58 +42,22 @@ private:
 
 class TestResult {
 public:
-  TestResult(TestID id, bool passed, std::vector<std::string> log)
-      : id_{std::move(id)}, passed_{passed}, log_{std::move(log)} {}
+  TestResult(TestID id, bool failed, std::vector<std::string> log)
+      : id_{std::move(id)}, failed_{failed}, log_{std::move(log)} {}
   auto id() const -> TestID const & { return id_; }
-  auto passed() const -> bool { return passed_; }
+  auto failed() const -> bool { return failed_; }
+  auto passed() const -> bool { return !failed(); }
   auto log() const -> std::vector<std::string> const & { return log_; }
 
 private:
   TestID const id_;
-  bool const passed_;
+  bool const failed_;
   std::vector<std::string> const log_;
-};
-
-class FailNowException : public std::exception {};
-
-class Runner : public Tester {
-public:
-  Runner(TestID id, TestFunc test)
-      : id_{std::move(id)}, test_{std::move(test)} {}
-
-  void fail() override { passed_ = false; }
-
-  void fail_now() override {
-    fail();
-    throw FailNowException{};
-  }
-
-  auto run() -> TestResult {
-    try {
-      test_(*this);
-    } catch (FailNowException const &ignored) {
-    } catch (char const *s) {
-      error("Unexpected string exception: ", s);
-    } catch (std::exception const &e) {
-      error("Unexpected exception: ", e.what());
-    } catch (...) {
-      error("Unrecognized exception");
-    }
-    return TestResult{id_, passed_, log_};
-  }
-
-private:
-  void add_log_entry(std::string entry) override { log_.push_back(entry); }
-
-  TestID const id_;
-  TestFunc test_;
-  std::vector<std::string> log_;
-  bool passed_{true};
 };
 
 template <typename C> class RunTest {
 public:
-  RunTest(C &controller) : controller_{controller} {}
+  explicit RunTest(C &controller) : controller_{controller} {}
 
   void operator()(std::pair<TestID, TestFunc> const &id_and_test) {
     auto const id = id_and_test.first;
@@ -101,17 +65,33 @@ public:
       return;
     }
     auto test = id_and_test.second;
-    auto const result = Runner{id, test}.run();
+    auto const result = run(id, test);
     controller_.report(result);
   }
 
 private:
+  static inline auto run(TestID const &id, TestFunc &test) -> TestResult {
+    auto log = std::vector<std::string>();
+    auto tester = Tester{log};
+    try {
+      test(tester);
+    } catch (Tester::FailNowException const &ignored) {
+    } catch (char const *s) {
+      tester.error("Unexpected string exception: ", s);
+    } catch (std::exception const &e) {
+      tester.error("Unexpected exception: ", e.what());
+    } catch (...) {
+      tester.error("Unrecognized exception");
+    }
+    return TestResult{id, tester.failed(), log};
+  }
+
   C &controller_;
 };
 
 template <typename C> class RunSuite {
 public:
-  RunSuite(C &controller) : controller_{controller} {}
+  explicit RunSuite(C &controller) : controller_{controller} {}
 
   void operator()(std::pair<std::string, Suite *> const &id_and_suite) {
     auto const suite_id = id_and_suite.first;
