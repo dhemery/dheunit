@@ -96,11 +96,11 @@ public:
   RunTest(C &controller) : controller_{controller} {}
 
   void operator()(std::pair<TestID, TestFunc> const &id_and_test) {
-    auto const id{id_and_test.first};
+    auto const id = id_and_test.first;
     if (!controller_.select_test(id)) {
       return;
     }
-    auto test{id_and_test.second};
+    auto test = id_and_test.second;
     auto const result = Runner{id, test}.run();
     controller_.report(result);
   }
@@ -114,16 +114,16 @@ public:
   RunSuite(C &controller) : controller_{controller} {}
 
   void operator()(std::pair<std::string, Suite *> const &id_and_suite) {
-    auto const suite_id{id_and_suite.first};
+    auto const suite_id = id_and_suite.first;
     if (!controller_.select_suite(suite_id)) {
       return;
     }
-    auto *suite{id_and_suite.second};
+    auto *suite = id_and_suite.second;
 
     std::vector<std::pair<TestID, TestFunc>> suite_tests{};
     auto registrar = [suite_id, &suite_tests](std::string const &test_name,
                                               TestFunc const &test) {
-      const TestID test_id = TestID{suite_id, test_name};
+      auto const test_id = TestID{suite_id, test_name};
       suite_tests.emplace_back(test_id, test);
     };
     suite->register_tests(registrar);
