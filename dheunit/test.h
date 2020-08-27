@@ -21,12 +21,13 @@ public:
 
   LogEntry() { os_ << std::boolalpha; }
 
-  template <typename T> void write(T &&t) { os_ << t; }
+  template <typename Arg> void write(Arg &&arg) { os_ << arg; }
 
-  template <typename T, typename... Ts> void write(T &&t, Ts &&... ts) {
-    write(t);
+  template <typename First, typename... More>
+  void write(First &&first, More &&... more) {
+    write(std::forward<First>(first));
     os_ << ' ';
-    write(ts...);
+    write(std::forward<More>(more)...);
   }
 
   void writef(char const *f) {
@@ -42,15 +43,15 @@ public:
     }
   }
 
-  template <typename T, typename... Ts>
-  void writef(char const *f, T &&t, Ts &&... ts) {
+  template <typename First, typename... More>
+  void writef(char const *f, First &&first, More &&... more) {
     if (f == nullptr) {
       throw FormatError{"Log format error: null format"};
     }
     while (f[0] != 0) {
       if (f[0] == '{' && f[1] == '}') {
-        os_ << t;
-        return writef(f + 2, ts...);
+        os_ << std::forward<First>(first);
+        return writef(f + 2, std::forward<More>(more)...);
       }
       os_ << f[0];
       f++;
@@ -73,31 +74,29 @@ class Tester {
 public:
   class FailNowException : public std::exception {};
 
-  void log(std::string const &entry) { log_.push_back(entry); }
-
   /**
    * Writes the string representation of each arg to the test's log, separated
    * by spaces.
    */
-  template <typename... Ts> void log(Ts const &... args) {
+  template <typename... Args> void log(Args &&... args) {
     auto entry = LogEntry{};
-    entry.write(args...);
-    log(entry.str());
+    entry.write(std::forward<Args>(args)...);
+    log_.push_back(entry.str());
   }
 
   /**
    * Equivalent to log(args) followed by fail().
    */
-  template <typename... Ts> void error(Ts const &... args) {
-    log(args...);
+  template <typename... Args> void error(Args &&... args) {
+    log(std::forward<Args>(args)...);
     fail();
   }
 
   /**
    * Equivalent to log(args) followed by fail_now().
    */
-  template <typename... Ts> void fatal(Ts const &... args) {
-    log(args...);
+  template <typename... Args> void fatal(Args &&... args) {
+    log(std::forward<Args>(args)...);
     fail_now();
   }
 
@@ -105,27 +104,25 @@ public:
    * Writes the format string to the test's log, replacing each {} with the
    * string representation of the corresponding arg.
    */
-  template <typename... Ts> void logf(char const *format, Ts const &... args) {
+  template <typename... Args> void logf(char const *format, Args &&... args) {
     auto entry = LogEntry{};
-    entry.writef(format, args...);
+    entry.writef(format, std::forward<Args>(args)...);
     log(entry.str());
   };
 
   /**
    * Equivalent to logf(format, args) followed by fail().
    */
-  template <typename... Ts>
-  void errorf(char const *format, Ts const &... args) {
-    logf(format, args...);
+  template <typename... Args> void errorf(char const *format, Args &&... args) {
+    logf(format, std::forward<Args>(args)...);
     fail();
   };
 
   /**
    * Equivalent to logf(format, args) followed by fail_now().
    */
-  template <typename... Ts>
-  void fatalf(char const *format, Ts const &... args) {
-    logf(format, args...);
+  template <typename... Args> void fatalf(char const *format, Args &&... args) {
+    logf(format, std::forward<Args>(args)...);
     fail_now();
   };
 
