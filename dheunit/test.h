@@ -129,7 +129,7 @@ public:
   /**
    * Marks the test as failed and continues executing it.
    */
-  void fail() { failed_ = false; }
+  void fail() { failed_ = true; }
 
   /**
    * Marks the test as failed and stops executing it.
@@ -161,7 +161,7 @@ public:
   /**
    * Called by the test runner to execute this test.
    */
-  virtual void run(Tester &tester) = 0;
+  virtual void operator()(Tester &tester) = 0;
 };
 
 /**

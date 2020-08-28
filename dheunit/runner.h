@@ -129,7 +129,7 @@ public:
 
   void register_test(std::string const &name, Test *test) {
     auto const test_id = TestID{"", name};
-    tests_[test_id] = [test](Tester &t) { test->run(t); };
+    tests_[test_id] = [test](Tester &t) { (*test)(t); };
   }
 
 private:
