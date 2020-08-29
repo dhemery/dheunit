@@ -17,6 +17,18 @@ auto is_equal_to(Actual const &want)
 }
 
 template <typename Actual>
+auto is_near(Actual const &want, Actual const &tolerance)
+    -> std::function<void(Tester &, Actual const &)> {
+  return [want, tolerance](Tester &t, Actual const &actual) {
+    auto const min = want - tolerance;
+    auto const max = want + tolerance;
+    if (actual < min || actual > max) {
+      t.errorf("was {}, want within {} of {}", actual, tolerance, want);
+    }
+  };
+}
+
+template <typename Actual>
 auto is_greater_than(Actual const &max)
     -> std::function<void(Tester &, Actual const &)> {
   return [max](Tester &t, Actual const &actual) {
