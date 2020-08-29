@@ -141,6 +141,58 @@ public:
 
   auto failed() const -> bool { return failed_; }
 
+  template <typename Subject, typename Assertion>
+  void assert_that(Subject &&subject, Assertion &&assertion) {
+    assertion(*this, std::forward<Subject>(subject));
+  }
+
+  template <typename Subject, typename Assertion>
+  void assert_that(char const *context, Subject &&subject,
+                   Assertion &&assertion) {
+    auto assertion_log = std::vector<std::string>{};
+    auto assertion_tester = Tester{assertion_log};
+
+    assertion(assertion_tester, std::forward<Subject>(subject));
+
+    if (!assertion_tester.failed()) {
+      return;
+    }
+
+    for (auto const &entry : assertion_log) {
+      errorf("{}: {}", context, entry);
+    }
+  }
+
+  template <typename Subject, typename Assertion>
+  void assert_that_f(Subject &&subject, Assertion &&assertion) {
+    auto assertion_tester = Tester{log_};
+
+    assertion(assertion_tester, std::forward<Subject>(subject));
+
+    if (!assertion_tester.failed()) {
+      return;
+    }
+    fail_now();
+  }
+
+  template <typename Subject, typename Assertion>
+  void assert_that_f(char const *context, Subject &&subject,
+                     Assertion &&assertion) {
+    auto assertion_log = std::vector<std::string>{};
+    auto assertion_tester = Tester{assertion_log};
+
+    assertion(assertion_tester, std::forward<Subject>(subject));
+
+    if (!assertion_tester.failed()) {
+      return;
+    }
+
+    for (auto const &entry : assertion_log) {
+      log("{}: {}", context, entry);
+    }
+    fail_now();
+  }
+
   explicit Tester(std::vector<std::string> &log) : log_{log} {}
 
 private:
