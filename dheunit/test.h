@@ -188,7 +188,7 @@ public:
     }
 
     for (auto const &entry : assertion_log) {
-      log("{}: {}", context, entry);
+      logf("{}: {}", context, entry);
     }
     fail_now();
   }
