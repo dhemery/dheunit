@@ -1,9 +1,7 @@
-#include "dheunit/runner.h"
+#include "dheunit/verbose-test-runner.h"
 
-using dhe::unit::runner::run_tests;
-using dhe::unit::runner::StandardTestController;
+using dhe::unit::runner::VerboseTestRunner;
 
 auto main() -> int {
-  auto controller = StandardTestController{};
-  return run_tests(controller);
+  VerboseTestRunner{}.run();
 }
