@@ -147,7 +147,7 @@ public:
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that(char const *context, Subject &&subject,
+  void assert_that(std::string const & context, Subject &&subject,
                    Assertion &&assertion) {
     auto assertion_log = std::vector<std::string>{};
     auto assertion_tester = Tester{assertion_log};
