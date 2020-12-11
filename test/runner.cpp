@@ -2,6 +2,4 @@
 
 using dhe::unit::runner::VerboseTestRunner;
 
-auto main() -> int {
-  VerboseTestRunner{}.run();
-}
+auto main() -> int { VerboseTestRunner{}.run(); }

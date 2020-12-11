@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace dhe {
@@ -24,7 +25,7 @@ public:
   template <typename Arg> void write(Arg &&arg) { os_ << arg; }
 
   template <typename First, typename... More>
-  void write(First &&first, More &&... more) {
+  void write(First &&first, More &&...more) {
     write(std::forward<First>(first));
     os_ << ' ';
     write(std::forward<More>(more)...);
@@ -44,7 +45,7 @@ public:
   }
 
   template <typename First, typename... More>
-  void writef(char const *f, First &&first, More &&... more) {
+  void writef(char const *f, First &&first, More &&...more) {
     if (f == nullptr) {
       throw FormatError{"Log format error: null format"};
     }
@@ -65,6 +66,13 @@ private:
   std::ostringstream os_{};
 };
 
+class Tester;
+
+/**
+ * The type of object that can be executed as a test.
+ */
+using TestFunc = std::function<void(Tester &)>;
+
 /**
  * Each test function receives a tester to report test failures and other
  * information. A test ends when it calls fatal() or fail_now() or when it
@@ -78,7 +86,7 @@ public:
    * Writes the string representation of each arg to the test's log, separated
    * by spaces.
    */
-  template <typename... Args> void log(Args &&... args) {
+  template <typename... Args> void log(Args &&...args) {
     auto entry = LogEntry{};
     entry.write(std::forward<Args>(args)...);
     log_.push_back(entry.str());
@@ -87,7 +95,7 @@ public:
   /**
    * Equivalent to log(args) followed by fail().
    */
-  template <typename... Args> void error(Args &&... args) {
+  template <typename... Args> void error(Args &&...args) {
     log(std::forward<Args>(args)...);
     fail();
   }
@@ -95,7 +103,7 @@ public:
   /**
    * Equivalent to log(args) followed by fail_now().
    */
-  template <typename... Args> void fatal(Args &&... args) {
+  template <typename... Args> void fatal(Args &&...args) {
     log(std::forward<Args>(args)...);
     fail_now();
   }
@@ -104,7 +112,7 @@ public:
    * Writes the format string to the test's log, replacing each {} with the
    * string representation of the corresponding arg.
    */
-  template <typename... Args> void logf(char const *format, Args &&... args) {
+  template <typename... Args> void logf(char const *format, Args &&...args) {
     auto entry = LogEntry{};
     entry.writef(format, std::forward<Args>(args)...);
     log(entry.str());
@@ -113,7 +121,7 @@ public:
   /**
    * Equivalent to logf(format, args) followed by fail().
    */
-  template <typename... Args> void errorf(char const *format, Args &&... args) {
+  template <typename... Args> void errorf(char const *format, Args &&...args) {
     logf(format, std::forward<Args>(args)...);
     fail();
   };
@@ -121,7 +129,7 @@ public:
   /**
    * Equivalent to logf(format, args) followed by fail_now().
    */
-  template <typename... Args> void fatalf(char const *format, Args &&... args) {
+  template <typename... Args> void fatalf(char const *format, Args &&...args) {
     logf(format, std::forward<Args>(args)...);
     fail_now();
   };
@@ -139,6 +147,9 @@ public:
     throw FailNowException{};
   }
 
+  /**
+   * Indicates whether the test has been marked as failed.
+   */
   auto failed() const -> bool { return failed_; }
 
   template <typename Subject, typename Assertion>
@@ -147,86 +158,44 @@ public:
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that(std::string const & context, Subject &&subject,
+  void assert_that(std::string const &context, Subject &&subject,
                    Assertion &&assertion) {
-    auto assertion_log = std::vector<std::string>{};
-    auto assertion_tester = Tester{assertion_log};
-
-    assertion(assertion_tester, std::forward<Subject>(subject));
-
-    if (!assertion_tester.failed()) {
-      return;
-    }
-
-    for (auto const &entry : assertion_log) {
-      errorf("{}: {}", context, entry);
-    }
+    run(context, [assertion, subject](Tester &t) { assertion(t, subject); });
   }
 
   template <typename Subject, typename Assertion>
   void assert_that_f(Subject &&subject, Assertion &&assertion) {
-    auto assertion_tester = Tester{log_};
-
-    assertion(assertion_tester, std::forward<Subject>(subject));
-
-    if (!assertion_tester.failed()) {
-      return;
+    assertion(*this, std::forward<Subject>(subject));
+    if (failed()) {
+      fail_now();
     }
-    fail_now();
   }
 
   template <typename Subject, typename Assertion>
   void assert_that_f(char const *context, Subject &&subject,
                      Assertion &&assertion) {
-    auto assertion_log = std::vector<std::string>{};
-    auto assertion_tester = Tester{assertion_log};
-
-    assertion(assertion_tester, std::forward<Subject>(subject));
-
-    if (!assertion_tester.failed()) {
-      return;
+    run(context, [assertion, subject](Tester &t) { assertion(t, subject); });
+    if (failed()) {
+      fail_now();
     }
-
-    for (auto const &entry : assertion_log) {
-      logf("{}: {}", context, entry);
-    }
-    fail_now();
   }
 
-  explicit Tester(std::vector<std::string> &log) : log_{log} {}
+  explicit Tester(std::string name) : name_{std::move(name)} {}
+
+  /**
+   * Runs the given test as a subtest of this test.
+   */
+  void run(std::string name, TestFunc const &test) {
+    Tester t{name_ + "::" + std::move(name)};
+    test(t);
+    failed_ = failed_ || t.failed();
+  }
 
 private:
+  std::string name_;
   bool failed_{false};
-  std::vector<std::string> &log_;
+  std::vector<std::string> log_{};
 };
-
-/**
- * A standalone test (not part of a suite).
- */
-class Test {
-public:
-  /**
-   * Constructs a test and registers it by name.
-   */
-  explicit Test(std::string const &name);
-
-  /**
-   * Called by the test runner to execute this test.
-   */
-  virtual void operator()(Tester &tester) = 0;
-};
-
-/**
- * The type of object that can be executed as a test.
- */
-using TestFunc = std::function<void(Tester &)>;
-
-/**
- * The type of function that registers a TestFunc with its suite.
- * Each suite will passed a TestRegistrar that it can use to register its tests.
- */
-using TestRegistrar =
-    std::function<void(std::string const &, TestFunc const &)>;
 
 /**
  * A suite of tests.
@@ -234,16 +203,18 @@ using TestRegistrar =
 class Suite {
 public:
   /**
-   * Constructs a test suite and registers it by name.
+   * Constructs a test suite and registers it with the test runner.
    */
-  explicit Suite(std::string const &name);
+  Suite();
+
+  virtual auto name() const -> std::string = 0;
 
   /**
-   * Called by the test runner to obtain the suite's tests. Your implementation
-   * can call the registrar any number of times to submit tests for the suite to
-   * run. The test runner prepends the suite's name to the name of each test.
+   * Called by the test runner to run the suite's tests. Your suite then calls
+   * t.run(name, test) to run each test. Tests can themselves run
+   * t.run(name, subtest) to run subtests.
    */
-  virtual void register_tests(TestRegistrar) = 0;
+  virtual void run(Tester &t) = 0;
 };
 } // namespace unit
 } // namespace dhe

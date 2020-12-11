@@ -3,9 +3,12 @@
 namespace dhe {
 namespace unit {
 struct LogEntryLogSuite : public Suite {
-  LogEntryLogSuite() : Suite{"dhe::unit::LogEntry write"} {}
-  void register_tests(TestRegistrar add_test) override {
-    add_test("one arg", [](Tester &t) {
+  auto name() const -> std::string override {
+    return "dhe::unit::LogEntry write";
+  }
+
+  void run(Tester &t) override {
+    t.run("one arg", [](Tester &t) {
       auto entry = LogEntry{};
       entry.write(true);
       auto const str = entry.str();
@@ -14,7 +17,7 @@ struct LogEntryLogSuite : public Suite {
       }
     });
 
-    add_test("n args", [](Tester &t) {
+    t.run("n args", [](Tester &t) {
       auto entry = LogEntry{};
       entry.write(true, 2, "fred");
 
@@ -27,12 +30,16 @@ struct LogEntryLogSuite : public Suite {
     });
   }
 };
+
 static LogEntryLogSuite log_suite __attribute__((unused)){};
 
 struct LogEntryLogfSuite : public Suite {
-  LogEntryLogfSuite() : Suite{"dhe::unit::LogEntry writef"} {}
-  void register_tests(TestRegistrar add_test) override {
-    add_test("null format with no args", [](Tester &t) {
+  auto name() const -> std::string override {
+    return "dhe::unit::LogEntry writef";
+  }
+
+  void run(Tester &t) override {
+    t.run("null format with no args", [](Tester &t) {
       auto entry = LogEntry{};
 
       try {
@@ -42,7 +49,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("null format with n args", [](Tester &t) {
+    t.run("null format with n args", [](Tester &t) {
       auto entry = LogEntry{};
 
       try {
@@ -52,7 +59,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("empty format", [](Tester &t) {
+    t.run("empty format", [](Tester &t) {
       auto entry = LogEntry{};
 
       entry.writef("");
@@ -63,7 +70,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("no anchors", [](Tester &t) {
+    t.run("no anchors", [](Tester &t) {
       auto entry = LogEntry{};
 
       auto constexpr format = "a format with no anchors";
@@ -75,7 +82,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("1 anchor 1 arg", [](Tester &t) {
+    t.run("1 anchor 1 arg", [](Tester &t) {
       auto entry = LogEntry{};
 
       entry.writef("prefix {} suffix", "arg1");
@@ -87,7 +94,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("n anchors n args", [](Tester &t) {
+    t.run("n anchors n args", [](Tester &t) {
       auto entry = LogEntry{};
 
       entry.writef("{},{},{}", "arg1", "arg2", "arg3");
@@ -99,7 +106,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("more anchors than args", [](Tester &t) {
+    t.run("more anchors than args", [](Tester &t) {
       auto entry = LogEntry{};
 
       try {
@@ -109,7 +116,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("more args than anchors", [](Tester &t) {
+    t.run("more args than anchors", [](Tester &t) {
       auto entry = LogEntry{};
 
       try {
@@ -119,7 +126,7 @@ struct LogEntryLogfSuite : public Suite {
       }
     });
 
-    add_test("opening brace precedes anchor", [](Tester &t) {
+    t.run("opening brace precedes anchor", [](Tester &t) {
       auto entry = LogEntry{};
 
       entry.writef("{{}foo", "arg1");
