@@ -20,12 +20,12 @@ static auto check_clock(Latch l, bool signal, Latch want_latch) -> TestFunc;
 
 class LatchSuite : public Suite {
 public:
-  auto name() const -> std::string override { return "dhe::Latch"; }
+  LatchSuite() : Suite("dhe::Latch") {}
 
   void run(Tester &t) override {
     t.run("is low by default", check_equality(Latch{}, low, true));
 
-    t.run("high == high", check_equality(high, high, true));
+    t.run("high == high", check_equality(high, high, false));
     t.run("high != low", check_equality(high, low, false));
     t.run("high != rising", check_equality(high, rising, false));
     t.run("high != falling", check_equality(high, falling, false));

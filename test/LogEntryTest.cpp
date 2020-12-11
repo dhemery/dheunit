@@ -3,9 +3,7 @@
 namespace dhe {
 namespace unit {
 struct LogEntryLogSuite : public Suite {
-  auto name() const -> std::string override {
-    return "dhe::unit::LogEntry write";
-  }
+  LogEntryLogSuite() : Suite("dhe::unit::LogEntry write") {}
 
   void run(Tester &t) override {
     t.run("one arg", [](Tester &t) {
@@ -34,9 +32,7 @@ struct LogEntryLogSuite : public Suite {
 static LogEntryLogSuite log_suite __attribute__((unused)){};
 
 struct LogEntryLogfSuite : public Suite {
-  auto name() const -> std::string override {
-    return "dhe::unit::LogEntry writef";
-  }
+  LogEntryLogfSuite() : Suite("dhe::unit::LogEntry writef") {}
 
   void run(Tester &t) override {
     t.run("null format with no args", [](Tester &t) {

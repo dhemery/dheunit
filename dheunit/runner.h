@@ -12,16 +12,19 @@ namespace dhe {
 namespace unit {
 namespace runner {
 
-static auto run_suite() -> std::function<void(Suite *)> {
-  return [](Suite *suite) {
-    Tester t{suite->name()};
+static inline auto run_suite(std::ostream &log)
+    -> std::function<void(Suite *)> {
+  return [&log](Suite *suite) {
+    Tester t{suite->name(), log};
     suite->run(t);
   };
 }
 
 class TestRun {
 public:
-  void run() { std::for_each(suites_.cbegin(), suites_.cend(), run_suite()); }
+  void run(std::ostream &log) {
+    std::for_each(suites_.cbegin(), suites_.cend(), run_suite(log));
+  }
 
   void register_suite(Suite *suite) { suites_.push_back(suite); }
 
@@ -34,10 +37,12 @@ static auto test_run() -> TestRun & {
   return the_test_run;
 }
 
-static inline void run_tests() { test_run().run(); }
+static inline void run_tests(std::ostream &log) { test_run().run(log); }
 
 } // namespace runner
 
-Suite::Suite() { runner::test_run().register_suite(this); }
+Suite::Suite(std::string name) : name_{std::move(name)} {
+  runner::test_run().register_suite(this);
+}
 } // namespace unit
 } // namespace dhe

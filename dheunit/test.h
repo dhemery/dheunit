@@ -89,7 +89,7 @@ public:
   template <typename... Args> void log(Args &&...args) {
     auto entry = LogEntry{};
     entry.write(std::forward<Args>(args)...);
-    log_.push_back(entry.str());
+    log_ << entry.str() << '\n';
   }
 
   /**
@@ -180,21 +180,24 @@ public:
     }
   }
 
-  explicit Tester(std::string name) : name_{std::move(name)} {}
+  explicit Tester(std::string name, std::ostream &log)
+      : name_{std::move(name)}, log_{log} {
+    log << name_ << '\n';
+  }
 
   /**
    * Runs the given test as a subtest of this test.
    */
   void run(std::string name, TestFunc const &test) {
-    Tester t{name_ + "::" + std::move(name)};
+    Tester t{std::move(name), log_};
     test(t);
     failed_ = failed_ || t.failed();
   }
 
 private:
-  std::string name_;
   bool failed_{false};
-  std::vector<std::string> log_{};
+  std::string name_;
+  std::ostream &log_;
 };
 
 /**
@@ -205,9 +208,7 @@ public:
   /**
    * Constructs a test suite and registers it with the test runner.
    */
-  Suite();
-
-  virtual auto name() const -> std::string = 0;
+  Suite(std::string name);
 
   /**
    * Called by the test runner to run the suite's tests. Your suite then calls
@@ -215,6 +216,10 @@ public:
    * t.run(name, subtest) to run subtests.
    */
   virtual void run(Tester &t) = 0;
+  auto name() const -> std::string { return name_; }
+
+private:
+  std::string const name_;
 };
 } // namespace unit
 } // namespace dhe
