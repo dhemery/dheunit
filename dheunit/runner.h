@@ -15,7 +15,7 @@ namespace runner {
 static inline auto run_suite(std::ostream &log)
     -> std::function<void(Suite *)> {
   return [&log](Suite *suite) {
-    Tester t{suite->name(), log};
+    Tester t{suite->name(), log, ""};
     suite->run(t);
   };
 }

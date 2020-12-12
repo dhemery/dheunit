@@ -11,7 +11,17 @@ auto is_equal_to(Actual const &want)
     -> std::function<void(Tester &, Actual const &)> {
   return [want](Tester &t, Actual const &actual) {
     if (actual != want) {
-      t.errorf("was {}, want {}", actual, want);
+      t.errorf("was {}, want a value equal to {}", actual, want);
+    }
+  };
+}
+
+template <typename Actual>
+auto is_not_equal_to(Actual const &want)
+    -> std::function<void(Tester &, Actual const &)> {
+  return [want](Tester &t, Actual const &actual) {
+    if (actual == want) {
+      t.errorf("was {}, want a value not equal to {}", actual, want);
     }
   };
 }

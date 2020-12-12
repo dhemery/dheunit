@@ -89,7 +89,7 @@ public:
   template <typename... Args> void log(Args &&...args) {
     auto entry = LogEntry{};
     entry.write(std::forward<Args>(args)...);
-    log_ << entry.str() << '\n';
+    log_ << prefix_ << entry.str() << '\n';
   }
 
   /**
@@ -154,42 +154,47 @@ public:
 
   template <typename Subject, typename Assertion>
   void assert_that(Subject &&subject, Assertion &&assertion) {
-    assertion(*this, std::forward<Subject>(subject));
+    assertion(*this, subject);
   }
 
   template <typename Subject, typename Assertion>
   void assert_that(std::string const &context, Subject &&subject,
                    Assertion &&assertion) {
-    run(context, [assertion, subject](Tester &t) { assertion(t, subject); });
+    auto t = Tester{context, log_, prefix_ + "    "};
+    assertion(t, subject);
+    if (t.failed()) {
+      fail();
+    }
   }
 
   template <typename Subject, typename Assertion>
   void assert_that_f(Subject &&subject, Assertion &&assertion) {
-    assertion(*this, std::forward<Subject>(subject));
+    assertion(*this, subject);
     if (failed()) {
       fail_now();
     }
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that_f(char const *context, Subject &&subject,
+  void assert_that_f(std::string const &context, Subject &&subject,
                      Assertion &&assertion) {
-    run(context, [assertion, subject](Tester &t) { assertion(t, subject); });
-    if (failed()) {
+    auto t = Tester{context, log_, prefix_ + "    "};
+    assertion(t, subject);
+    if (t.failed()) {
       fail_now();
     }
   }
 
-  explicit Tester(std::string name, std::ostream &log)
-      : name_{std::move(name)}, log_{log} {
-    log << name_ << '\n';
+  Tester(std::string name, std::ostream &log, std::string prefix)
+      : name_{std::move(name)}, log_{log}, prefix_{std::move(prefix)} {
+    log << prefix_ << name_ << '\n';
   }
 
   /**
    * Runs the given test as a subtest of this test.
    */
   void run(std::string name, TestFunc const &test) {
-    Tester t{std::move(name), log_};
+    Tester t{std::move(name), log_, prefix_ + "    "};
     test(t);
     failed_ = failed_ || t.failed();
   }
@@ -198,6 +203,7 @@ private:
   bool failed_{false};
   std::string name_;
   std::ostream &log_;
+  std::string prefix_;
 };
 
 /**
@@ -216,7 +222,7 @@ public:
    * t.run(name, subtest) to run subtests.
    */
   virtual void run(Tester &t) = 0;
-  auto name() const -> std::string { return name_; }
+  auto name() const -> std::string const & { return name_; }
 
 private:
   std::string const name_;
