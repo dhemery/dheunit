@@ -9,9 +9,7 @@ namespace unit {
 namespace runner {
 class VerboseTestRunner {
 public:
-  static inline void run() {
-
-    run_tests(std::cout); }
+  static inline void run() { run_tests(std::cout); }
 };
 } // namespace runner
 } // namespace unit
