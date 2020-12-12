@@ -22,10 +22,10 @@ public:
 
   LogEntry() { os_ << std::boolalpha; }
 
-  template <typename Arg> void write(Arg const &arg) { os_ << arg; }
+  template <typename Arg> void write(Arg arg) { os_ << arg; }
 
   template <typename First, typename... More>
-  void write(First const &first, More const &...more) {
+  void write(First first, More... more) {
     write(first);
     os_ << ' ';
     write(more...);
@@ -45,7 +45,7 @@ public:
   }
 
   template <typename First, typename... More>
-  void writef(char const *f, First const &first, More const &...more) {
+  void writef(char const *f, First first, More... more) {
     if (f == nullptr) {
       throw FormatError{"Log format error: null format"};
     }
@@ -86,7 +86,7 @@ public:
    * Writes the string representation of each arg to the test's log, separated
    * by spaces.
    */
-  template <typename... Args> void log(Args const &...args) {
+  template <typename... Args> void log(Args... args) {
     auto entry = LogEntry{};
     entry.write(args...);
     log_ << prefix_ << entry.str() << '\n';
@@ -95,7 +95,7 @@ public:
   /**
    * Equivalent to log(args) followed by fail().
    */
-  template <typename... Args> void error(Args const &...args) {
+  template <typename... Args> void error(Args... args) {
     log(args...);
     fail();
   }
@@ -103,7 +103,7 @@ public:
   /**
    * Equivalent to log(args) followed by fail_now().
    */
-  template <typename... Args> void fatal(Args const &...args) {
+  template <typename... Args> void fatal(Args... args) {
     log(args...);
     fail_now();
   }
@@ -113,7 +113,7 @@ public:
    * string representation of the corresponding arg.
    */
   template <typename... Args>
-  void logf(std::string const &format, Args const &...args) {
+  void logf(std::string const &format, Args... args) {
     auto entry = LogEntry{};
     entry.writef(format.c_str(), args...);
     log(entry.str());
@@ -123,7 +123,7 @@ public:
    * Equivalent to logf(format, args) followed by fail().
    */
   template <typename... Args>
-  void errorf(std::string const &format, Args const &...args) {
+  void errorf(std::string const &format, Args... args) {
     logf(format, args...);
     fail();
   };
@@ -132,7 +132,7 @@ public:
    * Equivalent to logf(format, args) followed by fail_now().
    */
   template <typename... Args>
-  void fatalf(std::string const &format, Args const &...args) {
+  void fatalf(std::string const &format, Args... args) {
     logf(format, args...);
     fail_now();
   };
@@ -156,13 +156,13 @@ public:
   auto failed() const -> bool { return failed_; }
 
   template <typename Subject, typename Assertion>
-  void assert_that(Subject const &subject, Assertion const &assertion) {
+  void assert_that(Subject subject, Assertion assertion) {
     assertion(*this, subject);
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that(std::string const &context, Subject const &subject,
-                   Assertion const &assertion) {
+  void assert_that(std::string const &context, Subject subject,
+                   Assertion assertion) {
     auto t = Tester{context, log_, prefix_ + "    "};
     assertion(t, subject);
     if (t.failed()) {
@@ -171,7 +171,7 @@ public:
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that_f(Subject const &subject, Assertion const &assertion) {
+  void assert_that_f(Subject subject, Assertion assertion) {
     assertion(*this, subject);
     if (failed()) {
       fail_now();
@@ -179,8 +179,8 @@ public:
   }
 
   template <typename Subject, typename Assertion>
-  void assert_that_f(std::string const &context, Subject const &subject,
-                     Assertion const &assertion) {
+  void assert_that_f(std::string const &context, Subject subject,
+                     Assertion assertion) {
     auto t = Tester{context, log_, prefix_ + "    "};
     assertion(t, subject);
     if (t.failed()) {
