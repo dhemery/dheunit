@@ -123,7 +123,7 @@ public:
   template <typename Subject, typename Assertion>
   void assert_that(std::string const &context, Subject subject,
                    Assertion assertion) {
-    auto t = Tester{this, context};
+    auto t = Tester{this, logger_.quiet_child(context)};
     assertion(t, subject);
   }
 
@@ -138,7 +138,7 @@ public:
   template <typename Subject, typename Assertion>
   void assert_that_f(std::string const &context, Subject subject,
                      Assertion assertion) {
-    auto t = Tester{this, context};
+    auto t = Tester{this, logger_.quiet_child(context)};
     t.assert_that_f(subject, assertion);
   }
 
@@ -150,7 +150,6 @@ public:
    */
   void run(const std::string &name, TestFunc const &test) {
     Tester t{this, name};
-    t.logger_.start();
     try {
       test(t);
     } catch (Tester::FailNowException const &ignored) {

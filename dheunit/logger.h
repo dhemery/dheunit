@@ -28,7 +28,9 @@ public:
   void error(std::string const &message) { write_message(message); }
 
   auto child(std::string const &name) -> Logger {
-    return Logger{this, name, chatty_};
+    auto logger = Logger{this, name, chatty_};
+    logger.start();
+    return logger;
   }
 
   auto quiet_child(std::string const &name) -> Logger {
