@@ -1,6 +1,7 @@
 #pragma once
 
 #include "format.h"
+#include "logger.h"
 
 #include <functional>
 #include <ios>
@@ -24,9 +25,9 @@ using TestFunc = std::function<void(Tester &)>;
  * returns.
  */
 class Tester {
-public:
   class FailNowException : public std::exception {};
 
+public:
   /**
    * Writes the string representation of each arg to the test's log,
    * separated by spaces.
