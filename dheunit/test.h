@@ -32,7 +32,8 @@ public:
    * separated by spaces.
    */
   template <typename... Args> void log(Args... args) {
-    format::write(out_, prefix(), args...);
+    out_ << prefix();
+    format::write(out_, args...);
     out_ << '\n';
   }
 
@@ -157,13 +158,12 @@ private:
   std::ostream &out_;
 
   Tester(Tester *parent, std::string name)
-      : parent_{parent}, name_{std::move(name)}, out_{parent->out_} {
-    format::write(out_, std::boolalpha, prefix() + name_, '\n');
-  }
+      : Tester{parent, std::move(name), parent->out_} {}
 
   Tester(Tester *parent, std::string name, std::ostream &out)
       : parent_{parent}, name_{std::move(name)}, out_{out} {
-    format::write(out_, std::boolalpha, prefix() + name_, '\n');
+    out_ << std::boolalpha;
+    log(name_);
   }
 
   auto prefix() const -> std::string {
