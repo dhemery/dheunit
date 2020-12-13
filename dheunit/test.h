@@ -28,7 +28,7 @@ public:
   class FailNowException : public std::exception {};
 
   /**
-   * Writes the string representation of each arg to the test's format,
+   * Writes the string representation of each arg to the test's log,
    * separated by spaces.
    */
   template <typename... Args> void log(Args... args) {
@@ -38,7 +38,7 @@ public:
   }
 
   /**
-   * Equivalent to format(args) followed by fail().
+   * Equivalent to log(args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
     log(args...);
@@ -46,7 +46,7 @@ public:
   }
 
   /**
-   * Equivalent to format(args) followed by fail_now().
+   * Equivalent to log(args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
     log(args...);
@@ -54,7 +54,7 @@ public:
   }
 
   /**
-   * Writes the format string to the test's format, replacing each {} with the
+   * Writes the format string to the test's log, replacing each {} with the
    * string representation of the corresponding arg.
    */
   template <typename... Args>
