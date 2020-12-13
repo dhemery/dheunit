@@ -1,71 +1,16 @@
 #pragma once
 
+#include "format.h"
+
 #include <functional>
 #include <ios>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace dhe {
 namespace unit {
-/**
- * Builds a log entry from one or more write operations.
- */
-class LogEntry {
-public:
-  struct FormatError : public std::runtime_error {
-    FormatError(char const *what) : std::runtime_error{what} {}
-  };
-
-  LogEntry() { os_ << std::boolalpha; }
-
-  template <typename Arg> void write(Arg arg) { os_ << arg; }
-
-  template <typename First, typename... More>
-  void write(First first, More... more) {
-    write(first);
-    os_ << ' ';
-    write(more...);
-  }
-
-  void writef(char const *f) {
-    if (f == nullptr) {
-      throw FormatError{"Log format error: null format"};
-    }
-    while (f[0] != 0) {
-      if (f[0] == '{' && f[1] == '}') {
-        throw FormatError{"Log format error: not enough arguments"};
-      }
-      os_ << f[0];
-      f++;
-    }
-  }
-
-  template <typename First, typename... More>
-  void writef(char const *f, First first, More... more) {
-    if (f == nullptr) {
-      throw FormatError{"Log format error: null format"};
-    }
-    while (f[0] != 0) {
-      if (f[0] == '{' && f[1] == '}') {
-        os_ << first;
-        return writef(f + 2, more...);
-      }
-      os_ << f[0];
-      f++;
-    }
-    throw FormatError{"Log format error: too many arguments"};
-  }
-
-  auto str() const -> std::string { return os_.str(); }
-
-private:
-  std::ostringstream os_{};
-};
-
 class Tester;
 
 /**
@@ -83,17 +28,16 @@ public:
   class FailNowException : public std::exception {};
 
   /**
-   * Writes the string representation of each arg to the test's log, separated
-   * by spaces.
+   * Writes the string representation of each arg to the test's format,
+   * separated by spaces.
    */
   template <typename... Args> void log(Args... args) {
-    auto entry = LogEntry{};
-    entry.write(args...);
-    log_ << prefix_ << entry.str() << '\n';
+    format::write(out_, prefix(), args...);
+    out_ << '\n';
   }
 
   /**
-   * Equivalent to log(args) followed by fail().
+   * Equivalent to format(args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
     log(args...);
@@ -101,7 +45,7 @@ public:
   }
 
   /**
-   * Equivalent to log(args) followed by fail_now().
+   * Equivalent to format(args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
     log(args...);
@@ -109,14 +53,13 @@ public:
   }
 
   /**
-   * Writes the format string to the test's log, replacing each {} with the
+   * Writes the format string to the test's format, replacing each {} with the
    * string representation of the corresponding arg.
    */
   template <typename... Args>
   void logf(std::string const &format, Args... args) {
-    auto entry = LogEntry{};
-    entry.writef(format.c_str(), args...);
-    log(entry.str());
+    format::writef(out_, (prefix() + format).c_str(), args...);
+    out_ << '\n';
   };
 
   /**
@@ -140,7 +83,12 @@ public:
   /**
    * Marks the test as failed and continues executing it.
    */
-  void fail() { failed_ = true; }
+  void fail() {
+    failed_ = true;
+    if (parent_ != nullptr) {
+      parent_->fail();
+    }
+  }
 
   /**
    * Marks the test as failed and stops executing it.
@@ -163,11 +111,8 @@ public:
   template <typename Subject, typename Assertion>
   void assert_that(std::string const &context, Subject subject,
                    Assertion assertion) {
-    auto t = Tester{context, log_, prefix_ + "    "};
+    auto t = Tester{this, context};
     assertion(t, subject);
-    if (t.failed()) {
-      fail();
-    }
   }
 
   template <typename Subject, typename Assertion>
@@ -181,32 +126,52 @@ public:
   template <typename Subject, typename Assertion>
   void assert_that_f(std::string const &context, Subject subject,
                      Assertion assertion) {
-    auto t = Tester{context, log_, prefix_ + "    "};
-    assertion(t, subject);
-    if (t.failed()) {
-      fail_now();
-    }
+    auto t = Tester{this, context};
+    t.assert_that_f(subject, assertion);
   }
 
-  Tester(std::string name, std::ostream &log, std::string prefix)
-      : name_{std::move(name)}, log_{log}, prefix_{std::move(prefix)} {
-    log << prefix_ << name_ << '\n';
-  }
+  Tester(std::string name, std::ostream &out)
+      : Tester{nullptr, std::move(name), out} {}
 
   /**
    * Runs the given test as a subtest of this test.
    */
-  void run(std::string name, TestFunc const &test) {
-    Tester t{std::move(name), log_, prefix_ + "    "};
-    test(t);
-    failed_ = failed_ || t.failed();
+  void run(const std::string &name, TestFunc const &test) {
+    Tester t{this, name, out_};
+    try {
+      test(t);
+    } catch (Tester::FailNowException const &ignored) {
+    } catch (char const *s) {
+      t.error("Unexpected string exception: ", s);
+    } catch (std::exception const &e) {
+      t.error("Unexpected exception: ", e.what());
+    } catch (...) {
+      t.error("Unrecognized exception");
+    }
   }
 
 private:
   bool failed_{false};
+  Tester *parent_;
   std::string name_;
-  std::ostream &log_;
-  std::string prefix_;
+  std::ostream &out_;
+
+  Tester(Tester *parent, std::string name)
+      : parent_{parent}, name_{std::move(name)}, out_{parent->out_} {
+    format::write(out_, std::boolalpha, prefix() + name_, '\n');
+  }
+
+  Tester(Tester *parent, std::string name, std::ostream &out)
+      : parent_{parent}, name_{std::move(name)}, out_{out} {
+    format::write(out_, std::boolalpha, prefix() + name_, '\n');
+  }
+
+  auto prefix() const -> std::string {
+    if (parent_ == nullptr) {
+      return "";
+    }
+    return parent_->prefix() + "    ";
+  }
 };
 
 /**

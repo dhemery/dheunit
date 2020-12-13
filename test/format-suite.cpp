@@ -1,4 +1,4 @@
-#include "dheunit/log.h"
+#include "dheunit/format.h"
 #include "dheunit/test.h"
 
 #include <ios>
@@ -6,22 +6,28 @@
 
 namespace dhe {
 namespace unit {
+namespace test {
 
-struct LogWriteSuite : public Suite {
-  LogWriteSuite() : Suite("log::write()") {}
+struct FormatSuite : public Suite {
+  FormatSuite() : Suite("format") {}
 
   void run(Tester &t) override {
+    t.run("write()", write_tests);
+    t.run("writef()", writef_tests);
+  }
+
+  static void write_tests(Tester &t) {
     t.run("one arg", [](Tester &t) {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::write(out, true);
+      format::write(out, true);
 
       auto const got = out.str();
 
-      auto constexpr want = "true";
+      auto constexpr want = "trsue";
       if (got != want) {
-        t.errorf(R"(Got "{}", want "{}")", got, want);
+        t.fatalf(R"(Got "{}", want "{}")", got, want);
       }
     });
 
@@ -29,7 +35,7 @@ struct LogWriteSuite : public Suite {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::write(out, true, 2, "fred");
+      format::write(out, true, 2, "fred");
 
       auto const got = out.str();
 
@@ -39,22 +45,16 @@ struct LogWriteSuite : public Suite {
       }
     });
   }
-};
 
-static LogWriteSuite log_write_suite __attribute__((unused)){};
-
-struct LogWritefSuite : public Suite {
-  LogWritefSuite() : Suite("log::writef()") {}
-
-  void run(Tester &t) override {
+  static void writef_tests(Tester &t) {
     t.run("null format with no args", [](Tester &t) {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
       try {
-        log::writef(out, nullptr);
+        format::writef(out, nullptr);
         t.error("Succeeded, but want FormatError");
-      } catch (log::FormatError & /*expected*/) {
+      } catch (format::FormatError & /*expected*/) {
       }
     });
 
@@ -63,9 +63,9 @@ struct LogWritefSuite : public Suite {
       out << std::boolalpha;
 
       try {
-        log::writef(out, nullptr, "arg1", "arg2", "arg3", "arg4");
+        format::writef(out, nullptr, "arg1", "arg2", "arg3", "arg4");
         t.error("Succeeded, but want FormatError");
-      } catch (log::FormatError & /*expected*/) {
+      } catch (format::FormatError & /*expected*/) {
       }
     });
 
@@ -73,7 +73,7 @@ struct LogWritefSuite : public Suite {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::writef(out, "");
+      format::writef(out, "");
       auto const str = out.str();
 
       if (!str.empty()) {
@@ -86,7 +86,7 @@ struct LogWritefSuite : public Suite {
       out << std::boolalpha;
 
       auto constexpr format = "a format with no anchors";
-      log::writef(out, format);
+      format::writef(out, format);
       auto const str = out.str();
 
       if (str != format) {
@@ -98,7 +98,7 @@ struct LogWritefSuite : public Suite {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::writef(out, "prefix {} suffix", "arg1");
+      format::writef(out, "prefix {} suffix", "arg1");
       auto const str = out.str();
 
       auto constexpr want = "prefix arg1 suffix";
@@ -111,7 +111,7 @@ struct LogWritefSuite : public Suite {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::writef(out, "{},{},{}", "arg1", "arg2", "arg3");
+      format::writef(out, "{},{},{}", "arg1", "arg2", "arg3");
       auto const str = out.str();
 
       auto constexpr want = "arg1,arg2,arg3";
@@ -125,9 +125,9 @@ struct LogWritefSuite : public Suite {
       out << std::boolalpha;
 
       try {
-        log::writef(out, "{},{},{}", "arg1", "arg2");
+        format::writef(out, "{},{},{}", "arg1", "arg2");
         t.error("Succeeded, but want FormatError");
-      } catch (log::FormatError & /*expected*/) {
+      } catch (format::FormatError & /*expected*/) {
       }
     });
 
@@ -136,9 +136,9 @@ struct LogWritefSuite : public Suite {
       out << std::boolalpha;
 
       try {
-        log::writef(out, "{},{},{}", "arg1", "arg2", "arg3", "arg4");
+        format::writef(out, "{},{},{}", "arg1", "arg2", "arg3", "arg4");
         t.error("Succeeded, but want FormatError");
-      } catch (log::FormatError & /*expected*/) {
+      } catch (format::FormatError & /*expected*/) {
       }
     });
 
@@ -146,7 +146,7 @@ struct LogWritefSuite : public Suite {
       auto out = std::ostringstream{};
       out << std::boolalpha;
 
-      log::writef(out, "{{}foo", "arg1");
+      format::writef(out, "{{}foo", "arg1");
       auto const str = out.str();
 
       auto constexpr want = "{arg1foo";
@@ -156,7 +156,9 @@ struct LogWritefSuite : public Suite {
     });
   }
 };
-static LogWritefSuite logf_suite __attribute__((unused)){};
 
+static FormatSuite __attribute__((unused)) _{};
+
+} // namespace test
 } // namespace unit
 } // namespace dhe

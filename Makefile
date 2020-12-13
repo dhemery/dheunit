@@ -51,7 +51,7 @@ endif
 
 OBJECTS := $(patsubst %.cpp, build/%.cpp.o, $(SOURCES))
 
-SOURCES = $(shell find test -name "log-write-suite.cpp" -or -name "runner.cpp")
+SOURCES = $(shell find test -name "*.cpp")
 
 OBJECTS := $(patsubst %, build/%.o, $(SOURCES))
 

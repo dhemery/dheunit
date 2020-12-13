@@ -4,7 +4,7 @@
 
 namespace dhe {
 namespace unit {
-namespace log {
+namespace format {
 
 struct FormatError : public std::runtime_error {
   FormatError(char const *what) : std::runtime_error{what} {}
@@ -46,6 +46,6 @@ void writef(std::ostream &out, char const *format, First first, More... more) {
   }
   throw FormatError{"Log format error: too many arguments"};
 }
-} // namespace log
+} // namespace format
 } // namespace unit
 } // namespace dhe
