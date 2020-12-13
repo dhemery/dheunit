@@ -2,7 +2,6 @@
 #include "dheunit/test.h"
 
 #include <ios>
-#include <sstream>
 
 namespace dhe {
 namespace unit {
@@ -27,7 +26,7 @@ struct FormatSuite : public Suite {
 
       auto constexpr want = "trsue";
       if (got != want) {
-        t.fatalf(R"(Got "{}", want "{}")", got, want);
+        t.errorf(R"(Got "{}", want "{}")", got, want);
       }
     });
 

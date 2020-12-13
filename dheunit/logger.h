@@ -1,6 +1,8 @@
-#include <utility>
-
 #pragma once
+
+#include <ostream>
+#include <string>
+#include <utility>
 
 namespace dhe {
 namespace unit {
@@ -25,8 +27,12 @@ public:
 
   void error(std::string const &message) { write_message(message); }
 
-  auto child(const std::string &name, bool chatty) -> Logger {
-    return Logger{this, name, chatty};
+  auto child(std::string const &name) -> Logger {
+    return Logger{this, name, chatty_};
+  }
+
+  auto quiet_child(std::string const &name) -> Logger {
+    return Logger{this, name, false};
   }
 
 private:
@@ -56,7 +62,7 @@ private:
   }
 
   void write(std::string const &prefix, std::string const &message) {
-    out_ << prefix << message << '\n';
+    out_ << prefix << message << "\n";
   }
 
   Logger *parent_;

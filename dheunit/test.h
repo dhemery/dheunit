@@ -6,6 +6,7 @@
 #include <functional>
 #include <ios>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -33,16 +34,20 @@ public:
    * separated by spaces.
    */
   template <typename... Args> void log(Args... args) {
-    out_ << prefix();
-    format::write(out_, args...);
-    out_ << '\n';
+    auto out = std::ostringstream{};
+    out << std::boolalpha;
+    format::write(out, args...);
+    logger_.log(out.str());
   }
 
   /**
    * Equivalent to log(args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    log(args...);
+    auto out = std::ostringstream{};
+    out << std::boolalpha;
+    format::write(out, args...);
+    logger_.error(out.str());
     fail();
   }
 
@@ -50,7 +55,7 @@ public:
    * Equivalent to log(args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    log(args...);
+    error(args...);
     fail_now();
   }
 
@@ -60,16 +65,21 @@ public:
    */
   template <typename... Args>
   void logf(std::string const &format, Args... args) {
-    format::writef(out_, (prefix() + format).c_str(), args...);
-    out_ << '\n';
-  };
+    auto out = std::ostringstream{};
+    out << std::boolalpha;
+    format::writef(out, format.c_str(), args...);
+    logger_.log(out.str());
+  }
 
   /**
    * Equivalent to logf(format, args) followed by fail().
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logf(format, args...);
+    auto out = std::ostringstream{};
+    out << std::boolalpha;
+    format::writef(out, format.c_str(), args...);
+    logger_.error(out.str());
     fail();
   };
 
@@ -78,7 +88,7 @@ public:
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logf(format, args...);
+    errorf(format, args...);
     fail_now();
   };
 
@@ -133,13 +143,14 @@ public:
   }
 
   Tester(std::string name, std::ostream &out)
-      : Tester{nullptr, std::move(name), out} {}
+      : Tester{nullptr, Logger{out, std::move(name), true}} {}
 
   /**
    * Runs the given test as a subtest of this test.
    */
   void run(const std::string &name, TestFunc const &test) {
-    Tester t{this, name, out_};
+    Tester t{this, name};
+    t.logger_.start();
     try {
       test(t);
     } catch (Tester::FailNowException const &ignored) {
@@ -155,17 +166,13 @@ public:
 private:
   bool failed_{false};
   Tester *parent_;
-  std::string name_;
-  std::ostream &out_;
+  Logger logger_;
 
-  Tester(Tester *parent, std::string name)
-      : Tester{parent, std::move(name), parent->out_} {}
+  Tester(Tester *parent, std::string const &name)
+      : Tester{parent, parent->logger_.child(name)} {}
 
-  Tester(Tester *parent, std::string name, std::ostream &out)
-      : parent_{parent}, name_{std::move(name)}, out_{out} {
-    out_ << std::boolalpha;
-    log(name_);
-  }
+  Tester(Tester *parent, Logger logger)
+      : parent_{parent}, logger_{std::move(logger)} {}
 
   auto prefix() const -> std::string {
     if (parent_ == nullptr) {
