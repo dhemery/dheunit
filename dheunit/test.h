@@ -65,7 +65,7 @@ public:
    * Equivalent to log(true, args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    log(true, args...);
+    log(true, fail_text, args..., normal_text);
     fail();
   }
 
@@ -73,7 +73,7 @@ public:
    * Equivalent to log(true, args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    log(true, args...);
+    log(true, fail_text, args..., normal_text);
     fail_now();
   }
 
@@ -82,7 +82,7 @@ public:
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logf(true, format, args...);
+    logf(true, fail_text + format + normal_text, args...);
     fail();
   };
 
@@ -91,7 +91,7 @@ public:
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logf(true, format, args...);
+    logf(true, fail_text + format + normal_text, args...);
     fail_now();
   };
 
@@ -186,6 +186,10 @@ private:
   bool failed_{false};
   Tester *parent_;
   Logger logger_;
+
+  static auto constexpr *fail_text = "\u001b[31m";
+  static auto constexpr *pass_text = "\u001b[32m";
+  static auto constexpr *normal_text = "\u001b[0m";
 
   Tester(Tester *parent, Logger logger)
       : parent_{parent}, logger_{std::move(logger)} {}
