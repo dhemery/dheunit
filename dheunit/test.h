@@ -1,24 +1,14 @@
 #pragma once
 
-#include "format.h"
 #include "logger.h"
 
-#include <functional>
-#include <ios>
-#include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 namespace dhe {
 namespace unit {
-class Tester;
-
-/**
- * The type of object that can be executed as a test.
- */
-using TestFunc = std::function<void(Tester &)>;
+using log::Logger;
 
 /**
  * Each test function receives a tester to report test failures and other
@@ -30,65 +20,78 @@ class Tester {
 
 public:
   /**
-   * Writes the string representation of each arg to the test's log,
-   * separated by spaces.
+   * Writes the string representation of each arg to the test's log, separated
+   * by spaces. If the test's logger is not chatty, it writes the message only
+   * if always is true. Before writing the message, the test writes its name and
+   * its parents' names if they have not already been written.
+   *
+   * @param always write this message even if the test's log is not chatty
+   * @param args the values to write to the log
    */
-  template <typename... Args> void log(Args... args) {
-    auto out = std::ostringstream{};
-    out << std::boolalpha;
-    format::write(out, args...);
-    logger_.log(out.str());
-  }
-
-  /**
-   * Equivalent to log(args) followed by fail().
-   */
-  template <typename... Args> void error(Args... args) {
-    auto out = std::ostringstream{};
-    out << std::boolalpha;
-    format::write(out, args...);
-    logger_.error(out.str());
-    fail();
-  }
-
-  /**
-   * Equivalent to log(args) followed by fail_now().
-   */
-  template <typename... Args> void fatal(Args... args) {
-    error(args...);
-    fail_now();
+  template <typename... Args> void log(bool always, Args... args) {
+    logger_.log(always, args...);
   }
 
   /**
    * Writes the format string to the test's log, replacing each {} with the
-   * string representation of the corresponding arg.
+   * string representation of the corresponding arg. If the test's logger is not
+   * chatty, it writes the message only if always is true. Before writing the
+   * message, the test writes its name and its parents' names if they have not
+   * already been written.
+   *
+   * @param always log this message even if the test's log is not chatty
+   * @param format the message format string
+   * @param args the values to insert into the formatted message
    */
   template <typename... Args>
-  void logf(std::string const &format, Args... args) {
-    auto out = std::ostringstream{};
-    out << std::boolalpha;
-    format::writef(out, format.c_str(), args...);
-    logger_.log(out.str());
+  void logf(bool always, std::string const &format, Args... args) {
+    logger_.logf(always, format, args...);
   }
 
   /**
-   * Equivalent to logf(format, args) followed by fail().
+   * Equivalent to log(false, args).
+   */
+  template <typename... Args> void log(Args... args) { log(false, args...); }
+
+  /**
+   * Equivalent to log(false, format, args).
+   */
+  template <typename... Args>
+  void logf(std::string const &format, Args... args) {
+    logf(false, format, args...);
+  }
+
+  /**
+   * Equivalent to log(true, args) followed by fail().
+   */
+  template <typename... Args> void error(Args... args) {
+    log(true, args...);
+    fail();
+  }
+
+  /**
+   * Equivalent to log(true, args) followed by fail_now().
+   */
+  template <typename... Args> void fatal(Args... args) {
+    log(true, args...);
+    fail_now();
+  }
+
+  /**
+   * Equivalent to logf(true, format, args) followed by fail().
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    auto out = std::ostringstream{};
-    out << std::boolalpha;
-    format::writef(out, format.c_str(), args...);
-    logger_.error(out.str());
+    logf(true, format, args...);
     fail();
   };
 
   /**
-   * Equivalent to logf(format, args) followed by fail_now().
+   * Equivalent to logf(true, format, args) followed by fail_now().
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    errorf(format, args...);
+    logf(true, format, args...);
     fail_now();
   };
 
@@ -115,18 +118,29 @@ public:
    */
   auto failed() const -> bool { return failed_; }
 
+  /**
+   * Apply the assertion to the subject.
+   */
   template <typename Subject, typename Assertion>
   void assert_that(Subject subject, Assertion assertion) {
     assertion(*this, subject);
   }
 
+  /**
+   * Apply the assertion to the subject. If debug is true or the log is chatty,
+   * log the description before applying the assertion.
+   */
   template <typename Subject, typename Assertion>
-  void assert_that(std::string const &context, Subject subject,
-                   Assertion assertion) {
-    auto t = Tester{this, logger_.quiet_child(context)};
+  void assert_that(std::string const &description, Subject subject,
+                   Assertion assertion, bool debug = false) {
+    auto t = Tester{this, logger_.child(description, debug)};
     assertion(t, subject);
   }
 
+  /**
+   * Apply the assertion to the subject. If the assertion marks the test as
+   * failed, stop executing the test.
+   */
   template <typename Subject, typename Assertion>
   void assert_that_f(Subject subject, Assertion assertion) {
     assertion(*this, subject);
@@ -135,24 +149,30 @@ public:
     }
   }
 
+  /**
+   * Apply the assertion to the subject. If the assertion marks the test as
+   * failed, stop executing the test. If debug is true or the log is chatty, log
+   * the description before applying the assertion.
+   */
   template <typename Subject, typename Assertion>
-  void assert_that_f(std::string const &context, Subject subject,
-                     Assertion assertion) {
-    auto t = Tester{this, logger_.quiet_child(context)};
+  void assert_that_f(std::string const &description, Subject subject,
+                     Assertion assertion, bool debug = false) {
+    auto t = Tester{this, logger_.child(description, debug)};
     t.assert_that_f(subject, assertion);
   }
 
-  Tester(std::string name, std::ostream &out)
-      : Tester{nullptr, Logger{out, std::move(name), true}} {}
+  Tester(Logger logger) : Tester{nullptr, std::move(logger)} {}
 
   /**
-   * Runs the given test as a subtest of this test.
+   * Runs the given test function as a subtest of this test. The test function
+   * must have a signature equivalent to: void fun(Tester &t).
    */
-  void run(const std::string &name, TestFunc const &test) {
-    Tester t{this, name};
+  template <typename TestFunc>
+  void run(const std::string &name, TestFunc test_func) {
+    Tester t{this, logger_.child(name)};
     try {
-      test(t);
-    } catch (Tester::FailNowException const &ignored) {
+      test_func(t);
+    } catch (FailNowException const &ignored) {
     } catch (char const *s) {
       t.error("Unexpected string exception: ", s);
     } catch (std::exception const &e) {
@@ -166,9 +186,6 @@ private:
   bool failed_{false};
   Tester *parent_;
   Logger logger_;
-
-  Tester(Tester *parent, std::string const &name)
-      : Tester{parent, parent->logger_.child(name)} {}
 
   Tester(Tester *parent, Logger logger)
       : parent_{parent}, logger_{std::move(logger)} {}

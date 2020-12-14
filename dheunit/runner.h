@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <string>
 #include <utility>
@@ -17,10 +18,10 @@ static auto suites() -> std::vector<Suite *> & {
   return suites;
 }
 
-static inline void run_tests(std::ostream &log) {
+static inline void run_tests(std::ostream &out, bool chatty) {
   auto s = suites();
-  std::for_each(s.cbegin(), s.cend(), [&log](Suite *suite) {
-    Tester t{suite->name(), log};
+  std::for_each(s.cbegin(), s.cend(), [&out, chatty](Suite *suite) {
+    Tester t{Logger{out, suite->name(), chatty}};
     suite->run(t);
   });
 }
