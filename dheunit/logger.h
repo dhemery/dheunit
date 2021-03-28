@@ -9,6 +9,21 @@ namespace dhe {
 namespace unit {
 namespace log {
 
+class Log {
+public:
+  virtual void write(std::string const &) = 0;
+};
+
+class StreamLog : public Log {
+public:
+  StreamLog(std::ostream &out) : out_{out} {}
+
+  void write(std::string const &line) override { out_ << line << '\n'; }
+
+private:
+  std::ostream &out_;
+};
+
 struct FormatError : public std::runtime_error {
   FormatError(char const *what) : std::runtime_error{what} {}
 };
