@@ -91,8 +91,11 @@ COMPILATION_DB_ENTRIES := $(patsubst %, build/%.json, $(SOURCES))
 $(COMPILATION_DB): $(COMPILATION_DB_ENTRIES)
 	sed -e '1s/^/[/' -e '$$s/,$$/]/' $^ | json_pp > $@
 
+.PHONY: setup
+setup: $(COMPILATION_DB)
+
 .PHONY: tidy
-tidy: $(COMPILATION_DB)
+tidy: setup
 	clang-tidy -header-filter='^(include|test)/' -p=build $(SOURCES)
 
 
