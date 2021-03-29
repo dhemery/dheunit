@@ -70,7 +70,7 @@ public:
   template <typename... Args> void log(Args... args) {
     auto line = std::ostringstream{};
     write(line, args...);
-    log_->record(line.str());
+    log_->write(line.str());
   }
 
   /**
@@ -84,7 +84,7 @@ public:
   void logf(std::string const &format, Args... args) {
     auto line = std::ostringstream{};
     writef(line, format.c_str(), args...);
-    log_->record(line.str());
+    log_->write(line.str());
   }
 
   void begin(std::string const &name) { log_->begin(name); }

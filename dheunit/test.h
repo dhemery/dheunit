@@ -108,10 +108,10 @@ public:
     auto t = Tester{logger_};
     logger_->begin(description);
     assertion(t, subject);
+    logger_->end(failed());
     if (t.failed()) {
       fail();
     }
-    logger_->end(failed());
   }
 
   /**
@@ -135,11 +135,11 @@ public:
                      Assertion assertion) {
     auto t = Tester{logger_};
     logger_->begin(description);
-    t.assert_that_f(subject, assertion);
-    if (t.failed()) {
-      fail();
-    }
+    assertion(t, subject);
     logger_->end(failed());
+    if (t.failed()) {
+      fail_now();
+    }
   }
 
   /**

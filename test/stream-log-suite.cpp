@@ -18,7 +18,7 @@ struct StreamLogSuite : public Suite {
       auto log = StreamLog{out};
 
       auto const line = std::string{"the logged line of text"};
-      log.record(line);
+      log.write(line);
 
       t.assert_that(out.str(), is_equal_to(line + '\n'));
     });
@@ -38,15 +38,15 @@ struct StreamLogSuite : public Suite {
       auto log = StreamLog{out};
 
       log.begin("begin1");
-      log.record("line1");
+      log.write("line1");
       log.begin("begin2");
-      log.record("line2");
+      log.write("line2");
       log.begin("begin3");
-      log.record("line3");
+      log.write("line3");
       log.begin("begin4");
-      log.record("line4");
+      log.write("line4");
       log.begin("begin5");
-      log.record("line5");
+      log.write("line5");
 
       auto expected_output = std::ostringstream{};
       expected_output << "begin1" << '\n';
@@ -84,15 +84,15 @@ struct StreamLogSuite : public Suite {
       log.begin("begin4");
       out.str("");
 
-      log.record("line1");
+      log.write("line1");
       log.end();
-      log.record("line2");
+      log.write("line2");
       log.end();
-      log.record("line3");
+      log.write("line3");
       log.end();
-      log.record("line4");
+      log.write("line4");
       log.end();
-      log.record("line5");
+      log.write("line5");
 
       auto expected_output = std::ostringstream{};
       expected_output << "                line1" << '\n';
