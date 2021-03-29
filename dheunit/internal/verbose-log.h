@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dheunit/log.h"
+#include "../log.h"
 #include <ostream>
 #include <sstream>
 #include <string>

@@ -1,5 +1,6 @@
 #pragma once
 #include "test.h"
+#include "internal/verbose-log.h"
 
 #include <algorithm>
 #include <functional>
@@ -18,12 +19,16 @@ static auto suites() -> std::vector<Suite *> & {
   return suites;
 }
 
-static inline auto run_tests(std::ostream &out, bool chatty) -> bool {
+static inline auto run_tests(std::ostream &out) -> bool {
   auto failed = false;
   auto s = suites();
-  std::for_each(s.cbegin(), s.cend(), [&failed, &out, chatty](Suite *suite) {
-    Tester t{Logger{out, suite->name(), chatty}};
+  auto log = log::VerboseLog{out};
+  auto logger = Logger{&log};
+  std::for_each(s.cbegin(), s.cend(), [&failed, &logger](Suite *suite) {
+    Tester t{&logger};
+    logger.begin(suite->name());
     suite->run(t);
+    logger.end(t.failed());
     failed = failed || t.failed();
   });
   return failed;

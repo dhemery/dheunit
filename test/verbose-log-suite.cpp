@@ -10,7 +10,7 @@ namespace log {
 namespace test {
 
 struct VerboseLogSuite : public Suite {
-  VerboseLogSuite() : Suite("VerboseLog()") {}
+  VerboseLogSuite() : Suite("VerboseLog") {}
 
   void run(Tester &t) override {
     t.run("write() writes str as line", [](Tester &t) {

@@ -21,89 +21,62 @@ class Tester {
 public:
   /**
    * Writes the string representation of each arg to the test's log, separated
-   * by spaces. If the test's logger is not chatty, it writes the message only
-   * if always is true. Before writing the message, the test writes its name and
-   * its parents' names if they have not already been written.
+   * by spaces.
    *
-   * @param always write this message even if the test's log is not chatty
    * @param args the values to write to the log
    */
-  template <typename... Args> void log(bool always, Args... args) {
-    logger_.log(always, args...);
-  }
+  template <typename... Args> void log(Args... args) { logger_->log(args...); }
 
   /**
    * Writes the format string to the test's log, replacing each {} with the
-   * string representation of the corresponding arg. If the test's logger is not
-   * chatty, it writes the message only if always is true. Before writing the
-   * message, the test writes its name and its parents' names if they have not
-   * already been written.
+   * string representation of the corresponding arg.
    *
-   * @param always log this message even if the test's log is not chatty
    * @param format the message format string
    * @param args the values to insert into the formatted message
    */
   template <typename... Args>
-  void logf(bool always, std::string const &format, Args... args) {
-    logger_.logf(always, format, args...);
-  }
-
-  /**
-   * Equivalent to log(false, args).
-   */
-  template <typename... Args> void log(Args... args) { log(false, args...); }
-
-  /**
-   * Equivalent to log(false, format, args).
-   */
-  template <typename... Args>
   void logf(std::string const &format, Args... args) {
-    logf(false, format, args...);
+    logger_->logf(format, args...);
   }
 
   /**
-   * Equivalent to log(true, args) followed by fail().
+   * Equivalent to log(args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    log(true, fail_text, args..., normal_text);
+    log(fail_text, args..., normal_text);
     fail();
   }
 
   /**
-   * Equivalent to log(true, args) followed by fail_now().
+   * Equivalent to log(args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    log(true, fail_text, args..., normal_text);
+    log(fail_text, args..., normal_text);
     fail_now();
   }
 
   /**
-   * Equivalent to logf(true, format, args) followed by fail().
+   * Equivalent to logf(format, args) followed by fail().
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logf(true, fail_text + format + normal_text, args...);
+    logf(fail_text + format + normal_text, args...);
     fail();
   };
 
   /**
-   * Equivalent to logf(true, format, args) followed by fail_now().
+   * Equivalent to logf(format, args) followed by fail_now().
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logf(true, fail_text + format + normal_text, args...);
+    logf(fail_text + format + normal_text, args...);
     fail_now();
   };
 
   /**
    * Marks the test as failed and continues executing it.
    */
-  void fail() {
-    failed_ = true;
-    if (parent_ != nullptr) {
-      parent_->fail();
-    }
-  }
+  void fail() { failed_ = true; }
 
   /**
    * Marks the test as failed and stops executing it.
@@ -127,14 +100,18 @@ public:
   }
 
   /**
-   * Apply the assertion to the subject. If debug is true or the log is chatty,
-   * log the description before applying the assertion.
+   * Apply the assertion to the subject.
    */
   template <typename Subject, typename Assertion>
   void assert_that(std::string const &description, Subject subject,
-                   Assertion assertion, bool debug = false) {
-    auto t = Tester{this, logger_.child(description, debug)};
+                   Assertion assertion) {
+    auto t = Tester{logger_};
+    logger_->begin(description);
     assertion(t, subject);
+    if (t.failed()) {
+      fail();
+    }
+    logger_->end(failed());
   }
 
   /**
@@ -151,17 +128,19 @@ public:
 
   /**
    * Apply the assertion to the subject. If the assertion marks the test as
-   * failed, stop executing the test. If debug is true or the log is chatty, log
-   * the description before applying the assertion.
+   * failed, stop executing the test.
    */
   template <typename Subject, typename Assertion>
   void assert_that_f(std::string const &description, Subject subject,
-                     Assertion assertion, bool debug = false) {
-    auto t = Tester{this, logger_.child(description, debug)};
+                     Assertion assertion) {
+    auto t = Tester{logger_};
+    logger_->begin(description);
     t.assert_that_f(subject, assertion);
+    if (t.failed()) {
+      fail();
+    }
+    logger_->end(failed());
   }
-
-  Tester(Logger logger) : Tester{nullptr, std::move(logger)} {}
 
   /**
    * Runs the given test function as a subtest of this test. The test function
@@ -169,7 +148,8 @@ public:
    */
   template <typename TestFunc>
   void run(const std::string &name, TestFunc test_func) {
-    Tester t{this, logger_.child(name)};
+    Tester t{logger_};
+    logger_->begin(name);
     try {
       test_func(t);
     } catch (FailNowException const &ignored) {
@@ -180,26 +160,21 @@ public:
     } catch (...) {
       t.error("Unrecognized exception");
     }
+    if (t.failed()) {
+      fail();
+    }
+    logger_->end(failed());
   }
 
+  Tester(Logger *logger) : logger_{logger} {}
+
 private:
+  Logger *logger_;
   bool failed_{false};
-  Tester *parent_;
-  Logger logger_;
 
   static auto constexpr *fail_text = "\u001b[31m";
   static auto constexpr *pass_text = "\u001b[32m";
   static auto constexpr *normal_text = "\u001b[0m";
-
-  Tester(Tester *parent, Logger logger)
-      : parent_{parent}, logger_{std::move(logger)} {}
-
-  auto prefix() const -> std::string {
-    if (parent_ == nullptr) {
-      return "";
-    }
-    return parent_->prefix() + "    ";
-  }
 };
 
 /**
