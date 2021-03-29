@@ -29,7 +29,7 @@ private:
   }
 
   static auto constexpr indent_size = 4U;
-  uint prefix_length_ = 0;
+  uint16_t prefix_length_ = 0;
   std::string prefix_{};
   std::ostream &out_;
 };
