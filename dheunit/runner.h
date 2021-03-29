@@ -1,6 +1,6 @@
 #pragma once
+#include "internal/stream-log.h"
 #include "test.h"
-#include "internal/verbose-log.h"
 
 #include <algorithm>
 #include <functional>
@@ -22,7 +22,7 @@ static auto suites() -> std::vector<Suite *> & {
 static inline auto run_tests(std::ostream &out) -> bool {
   auto failed = false;
   auto s = suites();
-  auto log = log::VerboseLog{out};
+  auto log = log::StreamLog{out};
   auto logger = Logger{&log};
   std::for_each(s.cbegin(), s.cend(), [&failed, &logger](Suite *suite) {
     Tester t{&logger};

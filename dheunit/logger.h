@@ -87,13 +87,10 @@ public:
     log_->record(line.str());
   }
 
-  void begin(std::string const &name) {
-      log_->begin(name);
-  }
+  void begin(std::string const &name) { log_->begin(name); }
 
-  void end(bool always) {
-      log_->end(always);
-  }
+  void end(bool always) { log_->end(always); }
+
 private:
   Log *log_;
 };

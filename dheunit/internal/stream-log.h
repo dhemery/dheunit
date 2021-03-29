@@ -10,9 +10,9 @@ namespace dhe {
 namespace unit {
 namespace log {
 
-class VerboseLog : public Log {
+class StreamLog : public Log {
 public:
-  VerboseLog(std::ostream &out) : Log{out} {}
+  StreamLog(std::ostream &out) : Log{out} {}
 
   void begin(std::string const &name) override {
     write(name);

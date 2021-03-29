@@ -1,5 +1,5 @@
 #include "dheunit/assertions.h"
-#include "dheunit/internal/verbose-log.h"
+#include "dheunit/internal/stream-log.h"
 #include "dheunit/test.h"
 
 #include <sstream>
@@ -9,13 +9,13 @@ namespace unit {
 namespace log {
 namespace test {
 
-struct VerboseLogSuite : public Suite {
-  VerboseLogSuite() : Suite("VerboseLog") {}
+struct StreamLogSuite : public Suite {
+  StreamLogSuite() : Suite("StreamLog") {}
 
   void run(Tester &t) override {
     t.run("write() writes str as line", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = VerboseLog{out};
+      auto log = StreamLog{out};
 
       auto const line = std::string{"the logged line of text"};
       log.record(line);
@@ -25,7 +25,7 @@ struct VerboseLogSuite : public Suite {
 
     t.run("begin() writes str as line", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = VerboseLog{out};
+      auto log = StreamLog{out};
 
       auto const name = std::string{"the name"};
       log.begin(name);
@@ -35,7 +35,7 @@ struct VerboseLogSuite : public Suite {
 
     t.run("each begin() increases indent by 4 spaces", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = VerboseLog{out};
+      auto log = StreamLog{out};
 
       log.begin("begin1");
       log.record("line1");
@@ -76,7 +76,7 @@ struct VerboseLogSuite : public Suite {
 
     t.run("each end() decreases indent by 4 spaces", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = VerboseLog{out};
+      auto log = StreamLog{out};
 
       log.begin("begin1");
       log.begin("begin2");
@@ -117,7 +117,7 @@ struct VerboseLogSuite : public Suite {
   }
 };
 
-static VerboseLogSuite __attribute__((unused)) _{};
+static StreamLogSuite __attribute__((unused)) _{};
 } // namespace test
 } // namespace log
 } // namespace unit
