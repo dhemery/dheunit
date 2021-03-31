@@ -3,6 +3,7 @@
 #include "dheunit/assertions.h"
 #include "dheunit/test.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -29,34 +30,67 @@ public:
   LogBufferSuite() : Suite("LogBuffer") {}
 
   void run(Tester &t) override {
-    t.run("announce() calls log.begin(name) if not already announced",
-          [](Tester &t) {
-            auto const name = std::string("log-buffer-name");
-            auto log = SpyLog{};
-            auto buf = LogBuffer{name, &log};
+    t.run("first announce() calls log.begin(name)", [](Tester &t) {
+      auto const name = std::string("log-buffer-name");
+      auto log = SpyLog{};
+      auto buf = LogBuffer{name, &log};
 
-            buf.announce();
+      buf.announce();
 
-            t.assert_that_f(log.begins_.size(), is_equal_to(1));
-            t.assert_that(log.begins_.front(), is_equal_to(name));
-          });
+      t.assert_that_f(log.begins_.size(), is_equal_to(1));
+      t.assert_that(log.begins_.front(), is_equal_to(name));
+    });
 
-    t.run("announce() does not call log.begin(name) if already announced",
-          [](Tester &t) {
-            auto const name = std::string("log-buffer-name");
-            auto log = SpyLog{};
-            auto buf = LogBuffer{name, &log};
+    t.run("subsequent announce() does not call log.begin(name)", [](Tester &t) {
+      auto const name = std::string("log-buffer-name");
+      auto log = SpyLog{};
+      auto buf = LogBuffer{name, &log};
 
-            buf.announce();
-            log.begins_.clear();
+      buf.announce();
+      log.begins_.clear();
 
-            buf.announce();
-            buf.announce();
-            buf.announce();
-            buf.announce();
+      buf.announce();
+      buf.announce();
+      buf.announce();
+      buf.announce();
 
-            t.assert_that(log.begins_.size(), is_equal_to(0));
-          });
+      t.assert_that(log.begins_.size(), is_equal_to(0));
+    });
+
+    t.run("flush() writes buffered lines to log", [](Tester &t) {
+      auto const lines = std::vector<std::string>{
+          "buffered line 1",
+          "buffered line 2",
+          "buffered line 3",
+          "buffered line 4",
+      };
+      auto log = SpyLog{};
+      auto buf = LogBuffer{"", &log};
+
+      for (auto const &line : lines) {
+        buf.write(line);
+      }
+
+      if (!log.writes_.empty()) {
+        t.errorf("Wrote {} lines before flush()", log.writes_.size());
+      }
+
+      buf.flush();
+
+      if (log.writes_.size() != lines.size()) {
+        t.fatal("Got {} lines, want {}", log.writes_.size(), lines.size());
+      }
+      auto const result =
+          std::mismatch(lines.cbegin(), lines.cend(), log.writes_.cbegin());
+      if (result.first != lines.cend()) {
+        t.errorf(R"(Mismatch at {}, want "{}", got "{}")",
+                 result.first - lines.cbegin(), *result.first, *result.second);
+      }
+
+      if (log.ends_.size() != 1) {
+        t.errorf("log.end() called {} times, want {}", log.ends_.size(), 1);
+      }
+    });
   }
 };
 
