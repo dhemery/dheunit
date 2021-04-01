@@ -1,6 +1,5 @@
 #include "dheunit/internal/log-buffer.h"
 
-#include "dheunit/assertions.h"
 #include "dheunit/test.h"
 
 #include <algorithm>
@@ -37,8 +36,14 @@ public:
 
       buf.announce();
 
-      t.assert_that_f(log.begins_.size(), is_equal_to(1));
-      t.assert_that(log.begins_.front(), is_equal_to(name));
+      auto const n_written = log.begins_.size();
+      if (n_written != 1) {
+        t.fatalf("Got {} lines, expected 1", n_written);
+      }
+      auto const line_written = log.begins_.front();
+      if (line_written != name) {
+        t.errorf("Got line '{}', want '{}'", line_written, name);
+      }
     });
 
     t.run("subsequent announce() does not call log.begin(name)", [](Tester &t) {
@@ -54,7 +59,9 @@ public:
       buf.announce();
       buf.announce();
 
-      t.assert_that(log.begins_.size(), is_equal_to(0));
+      if (!log.begins_.empty()) {
+        t.errorf("Want no output, got at least '{}'", log.begins_.front());
+      }
     });
 
     t.run("flush() writes buffered lines to log", [](Tester &t) {

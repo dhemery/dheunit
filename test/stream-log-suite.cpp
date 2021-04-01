@@ -1,4 +1,3 @@
-#include "dheunit/assertions.h"
 #include "dheunit/internal/stream-log.h"
 #include "dheunit/test.h"
 
@@ -20,7 +19,11 @@ struct StreamLogSuite : public Suite {
       auto const line = std::string{"the logged line of text"};
       log.write(line);
 
-      t.assert_that(out.str(), is_equal_to(line + '\n'));
+      auto const got = out.str();
+      auto const want = line + '\n';
+      if (got != want) {
+        t.errorf("Got '{}', want '{}'", got, want);
+      }
     });
 
     t.run("begin() writes str as line", [](Tester &t) {
@@ -30,7 +33,11 @@ struct StreamLogSuite : public Suite {
       auto const name = std::string{"the name"};
       log.begin(name);
 
-      t.assert_that(out.str(), is_equal_to(name + '\n'));
+      auto const got = out.str();
+      auto const want = name + '\n';
+      if (got != want) {
+        t.errorf("Got '{}', want '{}'", got, want);
+      }
     });
 
     t.run("each begin() increases indent by 4 spaces", [](Tester &t) {
