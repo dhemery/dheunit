@@ -48,14 +48,6 @@ public:
   }
 
   /**
-   * Equivalent to log(args) followed by fail_now().
-   */
-  template <typename... Args> void fatal(Args... args) {
-    log(fail_text, args..., normal_text);
-    fail_now();
-  }
-
-  /**
    * Equivalent to logf(format, args) followed by fail().
    */
   template <typename... Args>
@@ -63,6 +55,14 @@ public:
     logf(fail_text + format + normal_text, args...);
     fail();
   };
+
+  /**
+   * Equivalent to log(args) followed by fail_now().
+   */
+  template <typename... Args> void fatal(Args... args) {
+    log(fail_text, args..., normal_text);
+    fail_now();
+  }
 
   /**
    * Equivalent to logf(format, args) followed by fail_now().
@@ -90,57 +90,6 @@ public:
    * Indicates whether the test has been marked as failed.
    */
   auto failed() const -> bool { return failed_; }
-
-  /**
-   * Apply the assertion to the subject.
-   */
-  template <typename Subject, typename Assertion>
-  void assert_that(Subject subject, Assertion assertion) {
-    assertion(*this, subject);
-  }
-
-  /**
-   * Apply the assertion to the subject.
-   */
-  template <typename Subject, typename Assertion>
-  void assert_that(std::string const &description, Subject subject,
-                   Assertion assertion) {
-    auto t = Tester{logger_};
-    logger_->begin(description);
-    assertion(t, subject);
-    logger_->end(failed());
-    if (t.failed()) {
-      fail();
-    }
-  }
-
-  /**
-   * Apply the assertion to the subject. If the assertion marks the test as
-   * failed, stop executing the test.
-   */
-  template <typename Subject, typename Assertion>
-  void assert_that_f(Subject subject, Assertion assertion) {
-    assertion(*this, subject);
-    if (failed()) {
-      fail_now();
-    }
-  }
-
-  /**
-   * Apply the assertion to the subject. If the assertion marks the test as
-   * failed, stop executing the test.
-   */
-  template <typename Subject, typename Assertion>
-  void assert_that_f(std::string const &description, Subject subject,
-                     Assertion assertion) {
-    auto t = Tester{logger_};
-    logger_->begin(description);
-    assertion(t, subject);
-    logger_->end(failed());
-    if (t.failed()) {
-      fail_now();
-    }
-  }
 
   /**
    * Runs the given test function as a subtest of this test. The test function
