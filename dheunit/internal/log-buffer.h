@@ -21,9 +21,10 @@ public:
     announced_ = true;
   }
 
-  void write(std::string const &line) { buffered_lines_.push_back(line); }
+  void record(std::string const &line) { buffered_lines_.push_back(line); }
 
-  void flush() {
+  void write() {
+    announce();
     for (auto const &line : buffered_lines_) {
       log_->write(line);
     }

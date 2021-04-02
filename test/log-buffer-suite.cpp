@@ -29,25 +29,64 @@ public:
   LogBufferSuite() : Suite("LogBuffer") {}
 
   void run(Tester &t) override {
-    t.run("first announce() calls log.begin(name)", [](Tester &t) {
-      auto const name = std::string("log-buffer-name");
-      auto log = SpyLog{};
-      auto buf = LogBuffer{name, &log};
+    t.run("announce() begins named log section if not already begun",
+          [](Tester &t) {
+            auto const name = std::string("section-name");
+            auto log = SpyLog{};
+            auto buf = LogBuffer{name, &log};
 
-      buf.announce();
+            buf.announce();
 
-      auto const n_written = log.begins_.size();
-      if (n_written != 1) {
-        t.fatalf("Got {} lines, expected 1", n_written);
-      }
-      auto const line_written = log.begins_.front();
-      if (line_written != name) {
-        t.errorf("Got line '{}', want '{}'", line_written, name);
-      }
-    });
+            auto const n_written = log.begins_.size();
+            if (n_written != 1) {
+              t.fatalf("Got {} lines, expected 1", n_written);
+            }
+            auto const line_written = log.begins_.front();
+            if (line_written != name) {
+              t.errorf("Got line '{}', want '{}'", line_written, name);
+            }
+          });
 
-    t.run("subsequent announce() does not call log.begin(name)", [](Tester &t) {
-      auto const name = std::string("log-buffer-name");
+    t.run("announce() does not begin log section if already begun",
+          [](Tester &t) {
+            auto const name = std::string("section-name");
+            auto log = SpyLog{};
+            auto buf = LogBuffer{name, &log};
+
+            buf.announce();
+            log.begins_.clear();
+
+            buf.announce();
+            buf.announce();
+            buf.announce();
+            buf.announce();
+
+            if (!log.begins_.empty()) {
+              t.errorf("Want no output, got at least '{}'",
+                       log.begins_.front());
+            }
+          });
+
+    t.run("write() begins named log section if not already begun",
+          [](Tester &t) {
+            auto const section_name = std::string("section-name");
+            auto log = SpyLog{};
+            auto buf = LogBuffer{section_name, &log};
+
+            buf.write();
+
+            auto const n_written = log.begins_.size();
+            if (n_written != 1) {
+              t.fatalf("Got {} lines, expected 1", n_written);
+            }
+            auto const line_written = log.begins_.front();
+            if (line_written != section_name) {
+              t.errorf("Got line '{}', want '{}'", line_written, section_name);
+            }
+          });
+
+    t.run("write() does not begin log section if already begun", [](Tester &t) {
+      auto const name = std::string("section-name");
       auto log = SpyLog{};
       auto buf = LogBuffer{name, &log};
 
@@ -64,29 +103,52 @@ public:
       }
     });
 
-    t.run("flush() writes buffered lines to log", [](Tester &t) {
+    t.run("write() ends log section", [](Tester &t) {
+      auto log = SpyLog{};
+      auto buf = LogBuffer{"section-name", &log};
+
+      buf.write();
+
+      if (log.ends_.size() != 1) {
+        t.errorf("Got {} ends, want 1", log.ends_.size());
+      }
+    });
+
+    t.run("record(line) does not write to log", [](Tester &t) {
+      auto log = SpyLog{};
+      auto buf = LogBuffer{"", &log};
+
+      buf.record("a line to record");
+
+      if (!log.writes_.empty()) {
+        t.errorf("Got {} writes, want none", log.writes_.size());
+      }
+    });
+
+    t.run("write() writes recorded lines to log", [](Tester &t) {
       auto const lines = std::vector<std::string>{
-          "buffered line 1",
-          "buffered line 2",
-          "buffered line 3",
-          "buffered line 4",
+          "recorded line 1",
+          "recorded line 2",
+          "recorded line 3",
+          "recorded line 4",
       };
       auto log = SpyLog{};
       auto buf = LogBuffer{"", &log};
 
       for (auto const &line : lines) {
-        buf.write(line);
+        buf.record(line);
       }
 
       if (!log.writes_.empty()) {
-        t.errorf("Wrote {} lines before flush()", log.writes_.size());
+        t.errorf("Wrote {} lines before write()", log.writes_.size());
       }
 
-      buf.flush();
+      buf.write();
 
       if (log.writes_.size() != lines.size()) {
         t.fatal("Got {} lines, want {}", log.writes_.size(), lines.size());
       }
+
       auto const result =
           std::mismatch(lines.cbegin(), lines.cend(), log.writes_.cbegin());
       if (result.first != lines.cend()) {
