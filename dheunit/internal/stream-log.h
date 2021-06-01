@@ -21,9 +21,7 @@ public:
     out_ << prefix_ << line << '\n';
   }
 
-  void end(bool __attribute__((unused)) write = true) override {
-    adjust_prefix(-indent_size);
-  }
+  void end() override { adjust_prefix(-indent_size); }
 
 private:
   void adjust_prefix(uint16_t delta) {

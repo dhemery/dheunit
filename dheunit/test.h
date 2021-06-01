@@ -8,6 +8,7 @@
 
 namespace dhe {
 namespace unit {
+using log::Level;
 using log::Logger;
 
 /**
@@ -25,7 +26,9 @@ public:
    *
    * @param args the values to write to the log
    */
-  template <typename... Args> void log(Args... args) { logger_->log(args...); }
+  template <typename... Args> void log(Args... args) {
+    logger_->log(Level::Trace, args...);
+  }
 
   /**
    * Writes the format string to the test's log, replacing each {} with the
@@ -36,14 +39,14 @@ public:
    */
   template <typename... Args>
   void logf(std::string const &format, Args... args) {
-    logger_->logf(format, args...);
+    logger_->logf(Level::Trace, format, args...);
   }
 
   /**
    * Equivalent to log(args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    log(fail_text, args..., normal_text);
+    logger_->log(Level::Error, fail_text, args..., normal_text);
     fail();
   }
 
@@ -52,7 +55,7 @@ public:
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logf(fail_text + format + normal_text, args...);
+    logger_->logf(Level::Error, fail_text + format + normal_text, args...);
     fail();
   };
 
@@ -60,7 +63,7 @@ public:
    * Equivalent to log(args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    log(fail_text, args..., normal_text);
+    logger_->log(Level::Error, fail_text, args..., normal_text);
     fail_now();
   }
 
@@ -69,7 +72,7 @@ public:
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logf(fail_text + format + normal_text, args...);
+    logger_->logf(Level::Error, fail_text + format + normal_text, args...);
     fail_now();
   };
 
@@ -112,7 +115,7 @@ public:
     if (t.failed()) {
       fail();
     }
-    logger_->end(failed());
+    logger_->end();
   }
 
   Tester(Logger *logger) : logger_{logger} {}

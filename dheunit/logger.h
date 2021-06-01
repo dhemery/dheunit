@@ -10,6 +10,12 @@ namespace dhe {
 namespace unit {
 namespace log {
 
+enum class Level {
+  Trace = 0,
+  Debug = 1,
+  Error = 2,
+};
+
 struct FormatError : public std::runtime_error {
   FormatError(char const *what) : std::runtime_error{what} {}
 };
@@ -59,7 +65,7 @@ public:
    *
    * @param log the log to write to
    */
-  Logger(Log *log) : log_{log} {}
+  Logger(Level level, Log *log) : min_level_{level}, log_{log} {}
 
   /**
    * Writes the string representation of each arg to the log, separated by
@@ -67,7 +73,10 @@ public:
    *
    * @param args the values to write to the log
    */
-  template <typename... Args> void log(Args... args) {
+  template <typename... Args> void log(Level level, Args... args) {
+    if (level < min_level_) {
+      return;
+    }
     auto line = std::ostringstream{};
     write(line, args...);
     log_->write(line.str());
@@ -81,7 +90,10 @@ public:
    * @param args the values to insert into the formatted message
    */
   template <typename... Args>
-  void logf(std::string const &format, Args... args) {
+  void logf(Level level, std::string const &format, Args... args) {
+    if (level < min_level_) {
+      return;
+    }
     auto line = std::ostringstream{};
     writef(line, format.c_str(), args...);
     log_->write(line.str());
@@ -89,9 +101,10 @@ public:
 
   void begin(std::string const &name) { log_->begin(name); }
 
-  void end(bool always) { log_->end(always); }
+  void end() { log_->end(); }
 
 private:
+  Level min_level_;
   Log *log_;
 };
 } // namespace log
