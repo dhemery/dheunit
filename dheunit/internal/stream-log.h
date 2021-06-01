@@ -28,12 +28,12 @@ public:
   }
 
 private:
-  void adjust_prefix(int delta) {
+  void adjust_prefix(uint16_t delta) {
     prefix_length_ += delta;
     prefix_ = std::string(prefix_length_, ' ');
   }
 
-  static auto constexpr indent_size = 4U;
+  static auto constexpr indent_size = uint16_t{4};
   std::ostream &out_;
   uint16_t prefix_length_ = 0;
   std::string prefix_{};
