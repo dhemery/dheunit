@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -13,18 +14,33 @@ enum class Level {
   Error = 1,
 };
 
+/**
+ * Writes lines to a log, associating each with the active test.
+ */
 struct Log {
-  // Report the start of the test with the given name.
+  /**
+   * Note that the named test has become active.
+   */
   virtual void start(std::string const &name) = 0;
-  // Write the line to the log if the level is at or above the log's threshold.
+
+  /**
+   * Write the line to the log, if the level is at or above the log's threshold.
+   * The implementation should present the line in a way that clearly associates
+   * it with the active test.
+   */
   virtual void write(Level level, std::string const &line) = 0;
-  // End the end of the most recently started test.
+
+  /**
+   * Note that the active test has ended.
+   */
   virtual void end() = 0;
 };
 
 class DefaultLog : public Log {
 public:
-  DefaultLog(std::ostream &out, bool verbose) : out_{out}, verbose_{verbose} {}
+  DefaultLog(std::ostream &out, bool verbose) : out_{out}, verbose_{verbose} {
+    out_ << std::boolalpha;
+  }
 
   void start(std::string const &name) override {
     names_.push_back(name);

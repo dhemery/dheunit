@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <sstream>
 
 namespace dhe {
@@ -9,12 +10,15 @@ struct FormatError : public std::runtime_error {
   FormatError(char const *what) : std::runtime_error{what} {}
 };
 
+static inline void write(std::ostream &out) {}
+
 template <typename Arg> void write(std::ostream &out, Arg arg) { out << arg; }
 
-template <typename First, typename... More>
-static inline void write(std::ostream &out, First first, More... more) {
+template <typename First, typename Second, typename... More>
+static inline void write(std::ostream &out, First first, Second second,
+                         More... more) {
   out << first << ' ';
-  write(out, more...);
+  write(out, second, more...);
 }
 
 static inline void writef(std::ostream &out, char const *format) {
@@ -49,17 +53,19 @@ static inline void writef(std::ostream &out, char const *format, First first,
 
 template <typename... Args>
 static inline auto joined(Args... args) -> std::string {
-  auto line = std::ostringstream{};
-  write(line, args...);
-  return line.str();
+  auto s = std::ostringstream{};
+  s << std::boolalpha;
+  write(s, args...);
+  return s.str();
 }
 
 template <typename... Args>
 static inline auto formatted(std::string const &format, Args... args)
     -> std::string {
-  auto line = std::ostringstream{};
-  writef(line, format.c_str(), args...);
-  return line.str();
+  auto s = std::ostringstream{};
+  s << std::boolalpha;
+  writef(s, format.c_str(), args...);
+  return s.str();
 }
 } // namespace format
 } // namespace unit
