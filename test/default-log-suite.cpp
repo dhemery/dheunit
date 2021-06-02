@@ -1,4 +1,4 @@
-#include "dheunit/internal/stream-log.h"
+#include "dheunit/log.h"
 #include "dheunit/test.h"
 
 #include <sstream>
@@ -8,16 +8,16 @@ namespace unit {
 namespace log {
 namespace test {
 
-struct StreamLogSuite : public Suite {
-  StreamLogSuite() : Suite("StreamLog") {}
+struct DefaultLogSuite : public Suite {
+  DefaultLogSuite() : Suite("DefaultLog") {}
 
   void run(Tester &t) override {
     t.run("write() writes str as line", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = StreamLog{out};
+      auto log = DefaultLog{out, true};
 
       auto const line = std::string{"the logged line of text"};
-      log.write(line);
+      log.write(Level::Info, line);
 
       auto const got = out.str();
       auto const want = line + '\n';
@@ -26,12 +26,12 @@ struct StreamLogSuite : public Suite {
       }
     });
 
-    t.run("begin() writes str as line", [](Tester &t) {
+    t.run("start() writes str as line", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = StreamLog{out};
+      auto log = DefaultLog{out, true};
 
       auto const name = std::string{"the name"};
-      log.begin(name);
+      log.start(name);
 
       auto const got = out.str();
       auto const want = name + '\n';
@@ -40,20 +40,20 @@ struct StreamLogSuite : public Suite {
       }
     });
 
-    t.run("each begin() increases indent by 4 spaces", [](Tester &t) {
+    t.run("each start() increases indent by 4 spaces", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = StreamLog{out};
+      auto log = DefaultLog{out, true};
 
-      log.begin("begin1");
-      log.write("line1");
-      log.begin("begin2");
-      log.write("line2");
-      log.begin("begin3");
-      log.write("line3");
-      log.begin("begin4");
-      log.write("line4");
-      log.begin("begin5");
-      log.write("line5");
+      log.start("begin1");
+      log.write(Level::Info, "line1");
+      log.start("begin2");
+      log.write(Level::Info, "line2");
+      log.start("begin3");
+      log.write(Level::Info, "line3");
+      log.start("begin4");
+      log.write(Level::Info, "line4");
+      log.start("begin5");
+      log.write(Level::Info, "line5");
 
       auto expected_output = std::ostringstream{};
       expected_output << "begin1" << '\n';
@@ -83,23 +83,23 @@ struct StreamLogSuite : public Suite {
 
     t.run("each end() decreases indent by 4 spaces", [](Tester &t) {
       auto out = std::ostringstream{};
-      auto log = StreamLog{out};
+      auto log = DefaultLog{out, true};
 
-      log.begin("begin1");
-      log.begin("begin2");
-      log.begin("begin3");
-      log.begin("begin4");
+      log.start("begin1");
+      log.start("begin2");
+      log.start("begin3");
+      log.start("begin4");
       out.str("");
 
-      log.write("line1");
+      log.write(Level::Info, "line1");
       log.end();
-      log.write("line2");
+      log.write(Level::Info, "line2");
       log.end();
-      log.write("line3");
+      log.write(Level::Info, "line3");
       log.end();
-      log.write("line4");
+      log.write(Level::Info, "line4");
       log.end();
-      log.write("line5");
+      log.write(Level::Info, "line5");
 
       auto expected_output = std::ostringstream{};
       expected_output << "                line1" << '\n';
@@ -124,7 +124,7 @@ struct StreamLogSuite : public Suite {
   }
 };
 
-static StreamLogSuite __attribute__((unused)) _{};
+static auto _ = DefaultLogSuite{};
 } // namespace test
 } // namespace log
 } // namespace unit

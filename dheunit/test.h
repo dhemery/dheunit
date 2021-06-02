@@ -1,6 +1,7 @@
 #pragma once
 
-#include "logger.h"
+#include "format.h"
+#include "log.h"
 
 #include <stdexcept>
 #include <string>
@@ -8,71 +9,85 @@
 
 namespace dhe {
 namespace unit {
+
 using log::Level;
-using log::Logger;
+using log::Log;
 
 /**
  * Each test function receives a tester to report test failures and other
- * information. A test ends when it calls fatal() or fail_now() or when it
- * returns.
+ * information. A test function ends when it returns, throws an exception, or
+ * calls fatal(), fatalf(), or fail_now().
  */
 class Tester {
   class FailNowException : public std::exception {};
 
 public:
   /**
-   * Writes the string representation of each arg to the test's log, separated
-   * by spaces.
-   *
-   * @param args the values to write to the log
+   * Joins the string representation of each arg by spaces and reports the
+   * result to the test's log with the given log level. Note that log does not
+   * mark the test as failed, even if level indicates an error.
    */
-  template <typename... Args> void log(Args... args) {
-    logger_->log(Level::Trace, args...);
+  template <typename... Args> void log(Level level, Args... args) {
+    log_->write(level, format::joined(args...));
   }
 
   /**
-   * Writes the format string to the test's log, replacing each {} with the
-   * string representation of the corresponding arg.
-   *
-   * @param format the message format string
-   * @param args the values to insert into the formatted message
+   * Replaces each {} in the format with the string representation of the
+   * corresponding arg, and reports the result to the test's log with the given
+   * log level. Note that logf does not mark the test as failed, even if level
+   * indicates an error.
    */
   template <typename... Args>
-  void logf(std::string const &format, Args... args) {
-    logger_->logf(Level::Trace, format, args...);
+  void logf(Level level, std::string const &format, Args... args) {
+    log_->write(level, format::formatted(format, args...));
   }
 
   /**
-   * Equivalent to log(args) followed by fail().
+   * Equivalent to log(Level::Info, args).
+   */
+  template <typename... Args> void info(Args... args) {
+    log(Level::Info, args...);
+  }
+
+  /**
+   * Equivalent to logf(Level::Info, format, args).
+   */
+  template <typename... Args>
+  void infof(std::string const &format, Args... args) {
+    logf(Level::Info, format, args...);
+  }
+
+  /**
+   * Equivalent to log(Level::Error, args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    logger_->log(Level::Error, fail_text, args..., normal_text);
+    log(Level::Error, args...);
     fail();
   }
 
   /**
-   * Equivalent to logf(format, args) followed by fail().
+   * Equivalent to logf(Level::Error, format, args) followed by fail().
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logger_->logf(Level::Error, fail_text + format + normal_text, args...);
+    logf(Level::Error, format, args...);
     fail();
   };
 
   /**
-   * Equivalent to log(args) followed by fail_now().
+   * Equivalent to log(Level::Error, args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    logger_->log(Level::Error, fail_text, args..., normal_text);
+    log(Level::Error, args...);
     fail_now();
   }
 
   /**
-   * Equivalent to logf(format, args) followed by fail_now().
+   * Equivalent to logf(Level::Error, format, args) followed by fail_now().
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logger_->logf(Level::Error, fail_text + format + normal_text, args...);
+    logf(Level::Error, format, args...);
     fail_now();
   };
 
@@ -99,29 +114,29 @@ public:
    * must have a signature equivalent to: void fun(Tester &t).
    */
   template <typename TestFunc>
-  void run(const std::string &name, TestFunc test_func) {
-    Tester t{logger_};
-    logger_->begin(name);
+  void run(std::string const &name, TestFunc test_func) {
+    Tester t{log_};
+    log_->start(name);
     try {
       test_func(t);
     } catch (FailNowException const &ignored) {
     } catch (char const *s) {
-      t.error("Unexpected string exception: ", s);
+      t.error("Unexpected string exception:", s);
     } catch (std::exception const &e) {
-      t.error("Unexpected exception: ", e.what());
+      t.error("Unexpected exception:", e.what());
     } catch (...) {
       t.error("Unrecognized exception");
     }
     if (t.failed()) {
       fail();
     }
-    logger_->end();
+    log_->end();
   }
 
-  Tester(Logger *logger) : logger_{logger} {}
+  Tester(Log *log) : log_{log} {}
 
 private:
-  Logger *logger_;
+  Log *log_;
   bool failed_{false};
 
   static auto constexpr *fail_text = "\u001b[31m";

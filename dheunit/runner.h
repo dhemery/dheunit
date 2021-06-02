@@ -1,12 +1,10 @@
 #pragma once
-#include "internal/buffered-log.h"
-#include "internal/stream-log.h"
+
+#include "log.h"
 #include "test.h"
 
 #include <algorithm>
-#include <functional>
 #include <iostream>
-#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,34 +12,45 @@
 namespace dhe {
 namespace unit {
 namespace runner {
+using log::DefaultLog;
+using log::Log;
 
 static auto suites() -> std::vector<Suite *> & {
   static auto suites = std::vector<Suite *>{};
   return suites;
 }
 
-static inline auto run_tests(log::Level level = Level::Debug,
-                             std::ostream &out = std::cerr) -> bool {
+/**
+ * Run tests, logging to log.
+ */
+static inline auto run_tests(Log *log) -> bool {
   auto failed = false;
   auto s = suites();
-  auto slog = log::StreamLog{out};
-  auto blog = log::BufferedLog(&slog);
-  log::Log *log;
-  if (level == Level::Trace) {
-    log = &slog;
-  } else {
-    log = &blog;
-  }
-  auto logger = Logger{level, log};
-  std::for_each(s.cbegin(), s.cend(), [&failed, &logger](Suite *suite) {
-    Tester t{&logger};
-    logger.begin(suite->name());
+  std::for_each(s.cbegin(), s.cend(), [&failed, log](Suite *suite) {
+    log->start(suite->name());
+    Tester t{log};
     suite->run(t);
-    logger.end();
     failed = failed || t.failed();
+    log->end();
   });
   return failed;
 }
+
+/**
+ * Run tests, logging to out with the given verbosity.
+ */
+static inline auto run_tests(std::ostream &out, bool verbose = false) -> bool {
+  auto log = DefaultLog{out, verbose};
+  return run_tests(&log);
+}
+
+/**
+ * Run tests, logging to stderr with the given verbosity.
+ */
+static inline auto run_tests(bool verbose = false) -> bool {
+  return run_tests(std::cerr, verbose);
+}
+
 } // namespace runner
 
 Suite::Suite(std::string name) : name_{std::move(name)} {
