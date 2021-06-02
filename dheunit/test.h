@@ -61,7 +61,7 @@ public:
    * Equivalent to log(Level::Error, args) followed by fail().
    */
   template <typename... Args> void error(Args... args) {
-    log(Level::Error, args...);
+    log(Level::Error, fail_text, args..., normal_text);
     fail();
   }
 
@@ -70,7 +70,7 @@ public:
    */
   template <typename... Args>
   void errorf(std::string const &format, Args... args) {
-    logf(Level::Error, format, args...);
+    logf(Level::Error, fail_text + format + normal_text, args...);
     fail();
   };
 
@@ -78,7 +78,7 @@ public:
    * Equivalent to log(Level::Error, args) followed by fail_now().
    */
   template <typename... Args> void fatal(Args... args) {
-    log(Level::Error, args...);
+    log(Level::Error, fail_text, args..., normal_text);
     fail_now();
   }
 
@@ -87,7 +87,7 @@ public:
    */
   template <typename... Args>
   void fatalf(std::string const &format, Args... args) {
-    logf(Level::Error, format, args...);
+    logf(Level::Error, fail_text + format + normal_text, args...);
     fail_now();
   };
 
