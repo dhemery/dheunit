@@ -22,7 +22,7 @@ public:
 
   void write(std::string const &line) { log_->write(line); }
 
-  void clean() {
+  void remove() {
     if (announced_) {
       log_->end();
     }
@@ -39,25 +39,25 @@ public:
   BufferedLog(Log *log) : log_{log} {}
 
   void begin(std::string const &name) override {
-    bufs_.emplace_back(name, log_);
+    sections_.emplace_back(name, log_);
   }
 
   void write(std::string const &line) override {
-    for (auto &buf : bufs_) {
-      buf.announce();
+    for (auto &section : sections_) {
+      section.announce();
     }
-    bufs_.back().write(line);
+    sections_.back().write(line);
   }
 
   void end() override {
-    auto buf = bufs_.back();
-    buf.clean();
-    bufs_.pop_back();
+    auto section = sections_.back();
+    section.remove();
+    sections_.pop_back();
   }
 
 private:
   Log *log_;
-  std::vector<LogBuffer> bufs_{};
+  std::vector<LogBuffer> sections_{};
 };
 } // namespace log
 } // namespace unit
