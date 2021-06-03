@@ -1,10 +1,10 @@
-#include "dheunit/log.h"
-#include "dheunit/test.h"
+#include "dheunit/log.h"  // for Log, Level, Level::Info, DefaultLog, Level...
+#include "dheunit/test.h" // for Log, Level, Tester, Tester::FailNowException
 
-#include <ostream>
-#include <sstream>
-#include <string>
-#include <vector>
+#include <functional> // for function, __base
+#include <sstream>    // for string, operator<<, basic_ostringstream
+#include <string>     // for basic_string, char_traits, operator!=
+#include <vector>     // for vector
 
 namespace dhe {
 namespace unit {
@@ -180,7 +180,7 @@ struct DefaultLogSuite : public Suite {
   }
 };
 
-static auto _ = DefaultLogSuite{};
+__attribute__((unused)) static auto _ = DefaultLogSuite{};
 } // namespace test
 } // namespace log
 } // namespace unit

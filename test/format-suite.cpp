@@ -1,9 +1,9 @@
-#include "dheunit/format.h"
-#include "dheunit/test.h"
+#include "dheunit/format.h" // for formatted, joined, FormatError
+#include "dheunit/test.h"   // for Tester, Tester::FailNowException, Suite
 
-#include <functional>
-#include <strstream>
-#include <vector>
+#include <functional> // for function, __base
+#include <string>     // for string, operator!=, basic_string
+#include <vector>     // for vector
 
 namespace dhe {
 namespace unit {
@@ -34,7 +34,9 @@ static auto join_tests = std::vector<FormatTest>{
     },
     {
         .name_ = "n args",
-        .action_ = []() -> std::string { return joined(1, 2, 3, 4, 5); },
+        .action_ = []() -> std::string {
+          return joined(1, 2, 3, 4, 5); // NOLINT
+        },
         .want_ = "1 2 3 4 5",
     },
     {
@@ -72,7 +74,7 @@ static auto format_tests = std::vector<FormatTest>{
     {
         .name_ = "n anchors, n args",
         .action_ = []() -> std::string {
-          return formatted("values {}+{}+{}+{}+{}", 1, 2, 3, 4, 5);
+          return formatted("values {}+{}+{}+{}+{}", 1, 2, 3, 4, 5); // NOLINT
         },
         .want_ = "values 1+2+3+4+5",
 
@@ -102,7 +104,7 @@ struct FormatErrorTest {
   std::function<std::string()> action_;
 };
 
-static auto format_error_tests = std::vector<FormatTest>{
+static auto format_error_tests = std::vector<FormatErrorTest>{
     {
         .name_ = "more anchors than args",
         .action_ = []() -> std::string { return formatted("{} {}", 1); },
@@ -153,7 +155,7 @@ struct FormatSuite : public Suite {
   }
 };
 
-static auto _ = FormatSuite{};
+__attribute__((unused)) static auto _ = FormatSuite{};
 
 } // namespace test
 } // namespace format

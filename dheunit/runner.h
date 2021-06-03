@@ -1,13 +1,13 @@
 #pragma once
 
-#include "log.h"
-#include "test.h"
+#include "log.h"  // for DefaultLog, Log
+#include "test.h" // for Log, Suite, Tester
 
-#include <algorithm>
-#include <iostream>
-#include <string>
-#include <utility>
-#include <vector>
+#include <algorithm> // for for_each
+#include <iostream>  // for cerr, ostream
+#include <string>    // for string
+#include <utility>   // for move
+#include <vector>    // for vector
 
 namespace dhe {
 namespace unit {

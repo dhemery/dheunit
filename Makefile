@@ -59,9 +59,12 @@ RUNNER = build/runtests
 
 all: test
 
-.PHONY: test
+.PHONY: test vtest
 test: testrunner
 	$(RUNNER)
+
+vtest: testrunner
+	$(RUNNER) --verbose
 
 $(RUNNER): $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
@@ -98,6 +101,14 @@ setup: $(COMPILATION_DB)
 tidy: setup
 	clang-tidy -header-filter='^(include|test)/' -p=build $(SOURCES)
 
+IWYU := include-what-you-use
+IWYU += -Xiwyu --quoted_includes_first
+IWYU += -Xiwyu --mapping_file=.iwyu.libcxx.imp
+
+iwyu:
+	$(MAKE) -Bi CXX='$(IWYU)' $(OBJECTS)
+
+check: tidy iwyu
 
 
 

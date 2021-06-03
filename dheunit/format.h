@@ -1,7 +1,8 @@
 #pragma once
 
-#include <ostream>
-#include <sstream>
+#include <sstream>   // for ostream, operator<<, basic_ostringstream, boola...
+#include <stdexcept> // for runtime_error
+#include <string>    // for string
 
 namespace dhe {
 namespace unit {

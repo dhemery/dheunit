@@ -1,11 +1,9 @@
 #pragma once
 
-#include "format.h"
-#include "log.h"
-
-#include <stdexcept>
-#include <string>
-#include <utility>
+#include "format.h"  // for formatted, joined
+#include "log.h"     // for Level, Level::Error, Log, Level::Info
+#include <exception> // for exception
+#include <string>    // for operator+, string
 
 namespace dhe {
 namespace unit {
