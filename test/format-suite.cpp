@@ -53,24 +53,24 @@ static auto format_tests = std::vector<FormatTest>{
         .want_ = "",
     },
     {
-        .name_ = "0 anchors",
+        .name_ = "0 anchors, 0 args",
         .action_ = []() -> std::string { return formatted("0 anchors"); },
         .want_ = "0 anchors",
     },
     {
-        .name_ = "1 anchor",
+        .name_ = "1 anchor, 1 arg",
         .action_ = []() -> std::string { return formatted("{} anchor", 1); },
         .want_ = "1 anchor",
     },
     {
-        .name_ = "2 anchors",
+        .name_ = "2 anchors, 2 args",
         .action_ = []() -> std::string {
           return formatted("one:{} two:{}", 1, 2);
         },
         .want_ = "one:1 two:2",
     },
     {
-        .name_ = "n anchors",
+        .name_ = "n anchors, n args",
         .action_ = []() -> std::string {
           return formatted("values {}+{}+{}+{}+{}", 1, 2, 3, 4, 5);
         },
