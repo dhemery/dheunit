@@ -29,4 +29,5 @@ jobs:
         env:
           CC: ${{ matrix.config.compiler }}
         run: |
+          $(CC) -version
           make vtest

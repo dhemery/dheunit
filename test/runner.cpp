@@ -12,7 +12,6 @@ auto main(int argc, char *argv[]) -> int {
   bool verbose = false;
   for (int i = 1; i < argc; i++) {
     if (verbose_flag == argv[i] || verbose_short_flag == argv[i]) {
-      std::cout << "i = " << i << ", argv[i] = " << argv[i] << '\n';
       verbose = true;
     }
   }

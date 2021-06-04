@@ -99,11 +99,12 @@ setup: $(COMPILATION_DB)
 
 .PHONY: tidy
 tidy: setup
-	clang-tidy -header-filter='^(include|test)/' -p=build $(SOURCES)
+	clang-tidy -p=build $(SOURCES)
 
 IWYU := include-what-you-use
 IWYU += -Xiwyu --quoted_includes_first
-IWYU += -Xiwyu --mapping_file=.iwyu.libcxx.imp
+IWYU += -Xiwyu --mapping_file=.iwyu.libcxx.yaml
+IWYU += -Xiwyu --transitive_includes_only
 
 iwyu:
 	$(MAKE) -Bi CXX='$(IWYU)' $(OBJECTS)
@@ -126,7 +127,7 @@ build/%.cpp.o: %.cpp
 
 build/%.json: %
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
+	clang $(CXXFLAGS) -MJ $@ -c -o build/$^.o $^
 
 clean:
 	rm -rf build

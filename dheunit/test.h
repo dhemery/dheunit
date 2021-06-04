@@ -43,7 +43,7 @@ public:
   /**
    * Equivalent to log(Level::Info, args).
    */
-  template <typename... Args> void info(Args... args) {
+  template <typename... Args> void log(Args... args) {
     log(Level::Info, args...);
   }
 
@@ -51,7 +51,7 @@ public:
    * Equivalent to logf(Level::Info, format, args).
    */
   template <typename... Args>
-  void infof(std::string const &format, Args... args) {
+  void logf(std::string const &format, Args... args) {
     logf(Level::Info, format, args...);
   }
 
@@ -138,7 +138,6 @@ private:
   bool failed_{false};
 
   static auto constexpr *fail_text = "\u001b[31m";
-  static auto constexpr *pass_text = "\u001b[32m";
   static auto constexpr *normal_text = "\u001b[0m";
 };
 
